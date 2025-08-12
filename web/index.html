@@ -20,7 +20,6 @@
     #panicReveal .btn-inner{position:relative;display:flex;align-items:center;gap:14px;padding:16px 26px 16px 18px;border-radius:50px;overflow:hidden;}
     #panicReveal .btn-inner::before{content:"";position:absolute;inset:0;background:radial-gradient(200px 80px at 50% -40px,rgba(255,255,255,.55),transparent 65%)}
     #panicReveal .visor{width:54px;height:34px;border-radius:22px;background:linear-gradient(180deg,#c6f0ff,#9ad8ff 45%,#6fbde8);box-shadow:inset 0 2px 0 rgba(255,255,255,.7),inset 0 -4px 10px rgba(0,0,0,.25);border:2px solid rgba(0,0,0,.15);position:relative;}
-    #panicReveal .visor::after{content:"";position:absolute;left:8px;top:6px;width:14px;height:8px;border-radius:10px;background:rgba(255,255,255,.8)}
     #panicReveal .label{font-weight:900;letter-spacing:.5px;font-size:1.1rem;text-shadow:0 1px 0 rgba(0,0,0,.25);display:flex;flex-direction:column;line-height:1.1;}
     #panicReveal .label .small{font-size:.70rem;opacity:.85;font-weight:700;letter-spacing:.2px;}
     #panicReveal:hover{transform:translateY(-2px);box-shadow:0 14px 26px rgba(199,15,28,.5)}
@@ -210,45 +209,44 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    // ======= helpers & sound (unchanged from last step, trimmed for space) =======
+    // ===== Sound manager (restored) =====
+    const Sound = (() => {
+      let ctx, muted = localStorage.getItem('imposter.muted') === '1';
+      function ensure(){ if(!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)(); if(ctx.state==='suspended') ctx.resume(); return ctx; }
+      function tone(f=440,d=0.07,type='square',g=0.05){ if(muted) return; const c=ensure(); const o=c.createOscillator(); const ga=c.createGain(); o.type=type; o.frequency.value=f; ga.gain.value=g; o.connect(ga).connect(c.destination); o.start(); o.stop(c.currentTime+d); }
+      function sweep(f1,f2,d=0.5,type='sawtooth',g=0.05){ if(muted) return; const c=ensure(); const o=c.createOscillator(); const ga=c.createGain(); o.type=type; o.frequency.setValueAtTime(f1,c.currentTime); o.frequency.exponentialRampToValueAtTime(f2,c.currentTime+d); ga.gain.value=g; o.connect(ga).connect(c.destination); o.start(); o.stop(c.currentTime+d); }
+      return {
+        click(){ tone(320,0.05,'square',0.05); tone(520,0.05,'square',0.03); },
+        success(){ tone(660,0.06,'triangle',0.05); setTimeout(()=>tone(880,0.07,'triangle',0.05),60); },
+        error(){ sweep(140,120,0.18,'sawtooth',0.06); },
+        reveal(){ sweep(500,140,0.5,'sawtooth',0.05); setTimeout(()=>sweep(300,900,0.5,'triangle',0.04),380); },
+        vote(){ tone(420,0.08,'square',0.05); },
+        tick(){ tone(260,0.03,'square',0.03); },
+        word(){ tone(700,0.05,'triangle',0.05); tone(500,0.06,'triangle',0.04); },
+        get muted(){ return muted; }, setMuted(v){ muted=!!v; localStorage.setItem('imposter.muted', muted?'1':'0'); }
+      };
+    })();
+
+    // ===== sockets / helpers =====
     const $ = id => document.getElementById(id);
-    const connEl=$('conn'), sidEl=$('sid'); const socket=io();
+    const socket = io();
+    const connEl = $('conn'), sidEl = $('sid');
     socket.on('connect',()=>{connEl.textContent='connected ✅';sidEl.textContent=socket.id;connEl.className='text-emerald-700';});
     socket.on('disconnect',r=>{connEl.textContent=`offline (${r})`;connEl.className='text-rose-700';sidEl.textContent='—';});
+
     function toast(msg){ const t=$('globalToast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',1600); }
-    function regenQR(el,url){ if(!el) return; el.innerHTML=''; new QRCode(el,{text:url,width:140,height:140}); }
     function view(id){['viewHome','viewLobby','viewRoles','viewCountdown','viewVote','viewReveal'].forEach(v=>$(v).classList.add('hidden')); $(id).classList.remove('hidden');}
     function makeCode(len=6){const c='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<len;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
-    function showWordFly(name,text){ const el=document.createElement('div'); el.className='word-fly'; el.innerHTML=`<small>${name}:</small> ${text}`; document.body.appendChild(el); setTimeout(()=>el.remove(),2300); }
+    function regenQR(el,url){ if(!el) return; el.innerHTML=''; new QRCode(el,{text:url,width:140,height:140}); }
+    function showWordFly(name,text){ const el=document.createElement('div'); el.className='word-fly'; el.innerHTML=`<small>${name}:</small> ${text}`; document.body.appendChild(el); Sound.word(); setTimeout(()=>el.remove(),2300); }
 
-    // ======= share base (NEW) =======
-    let linkBase = localStorage.getItem('imposter.linkBase') || location.origin; // e.g., http://192.168.1.50:3000
-    const linkBaseBtn = $('linkBaseBtn');
+    // Link base (Render default on localhost)
+    const RENDER_DEFAULT = 'https://imposter-game-b1s8.onrender.com';
+    let linkBase = localStorage.getItem('imposter.linkBase') || (location.hostname==='localhost'?RENDER_DEFAULT:location.origin);
     function shareURL(code){ return `${linkBase}${location.pathname}#room=${code}`; }
-    function setLinkBase(newBase){
-      try{
-        const u=new URL(newBase); // validate
-        linkBase = u.origin;
-        localStorage.setItem('imposter.linkBase', linkBase);
-        linkBaseBtn.textContent = `Link Base`;
-        toast(`Link base set to ${linkBase}`);
-        // re-render QR/link if a room exists
-        if(activeCode){
-          const url = shareURL(activeCode);
-          $('shareLink').textContent = url;
-          $('shareLinkLobby').textContent = url;
-          regenQR($('qrHome'), url);
-          regenQR($('qrLobby'), url);
-        }
-      }catch{ toast('Invalid URL. Example: http://192.168.1.50:3000'); }
-    }
-    linkBaseBtn.title = 'Set the base URL used for links/QR (e.g., http://192.168.1.50:3000)';
-    linkBaseBtn.addEventListener('click',()=>{
-      const v = prompt('Enter base URL to share (e.g., http://192.168.1.50:3000):', linkBase);
-      if(v) setLinkBase(v.trim());
-    });
 
-    // ======= refs =======
+    // refs
+    const linkBaseBtn=$('linkBaseBtn'), muteBtn=$('muteBtn');
     const createBtn=$('createBtn'), hostNameEl=$('hostName'), homeShare=$('homeShare'), roomCodeEl=$('roomCode'), shareLinkEl=$('shareLink'), qrHome=$('qrHome'), homeCopyBtn=$('homeCopyBtn');
     const joinBtn=$('joinBtn'), joinNameEl=$('joinName'), joinCodeEl=$('joinCode'), linkHint=$('linkHint'), detectedRoomEl=$('detectedRoom');
     const stateCodeEl=$('stateCode'), playersEl=$('players'), hostBadge=$('hostBadge'), phaseBadge=$('phaseBadge'), timerChip=$('timerChip');
@@ -262,28 +260,28 @@
     const resultText=$('resultText'), secretWordLine=$('secretWordLine');
     const panicRevealBtn=$('panicReveal');
     const turnChips=$('turnChips'), turnInputWrap=$('turnInputWrap'), turnInput=$('turnInput'), turnSend=$('turnSend'), turnWait=$('turnWait'), turnName=$('turnName');
-    const muteBtn=$('muteBtn');
 
-    // simple sound toggle (kept from earlier build)
-    let muted = localStorage.getItem('imposter.muted') === '1';
-    function renderMute(){ if(muted){ muteBtn.classList.add('active'); muteBtn.textContent='🔇 Muted'; } else { muteBtn.classList.remove('active'); muteBtn.textContent='🔊 Sound'; } }
-    renderMute();
-    muteBtn.addEventListener('click',()=>{ muted=!muted; localStorage.setItem('imposter.muted', muted?'1':'0'); renderMute(); });
+    // Mute toggle
+    function renderMute(){ Sound.muted ? (muteBtn.classList.add('active'), muteBtn.textContent='🔇 Muted') : (muteBtn.classList.remove('active'), muteBtn.textContent='🔊 Sound'); }
+    renderMute(); muteBtn.addEventListener('click',()=>{ Sound.setMuted(!Sound.muted); renderMute(); if(!Sound.muted) Sound.success(); });
 
-    // ======= copy handlers (ALWAYS BOUND) =======
-    async function copyText(text){
-      if(!text) return;
-      try{ await navigator.clipboard.writeText(text); toast('Link copied to clipboard!'); }
-      catch{ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('Link copied to clipboard!'); }
-    }
+    // Link Base prompt
+    linkBaseBtn.addEventListener('click',()=>{ Sound.click(); const v=prompt('Enter base URL for share links (e.g., https://imposter-game-b1s8.onrender.com):', linkBase); if(!v) return;
+      try{ const u=new URL(v); linkBase=u.origin; localStorage.setItem('imposter.linkBase', linkBase); toast(`Link base set to ${linkBase}`); if(activeCode){ const url=shareURL(activeCode); $('shareLink').textContent=url; $('shareLinkLobby').textContent=url; regenQR(qrHome,url); regenQR(qrLobby,url);} }
+      catch{ toast('Invalid URL'); }
+    });
+
+    // Copy helpers
+    async function copyText(text){ if(!text) return; try{ await navigator.clipboard.writeText(text); toast('Link copied!'); Sound.success(); } catch{ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('Link copied!'); Sound.success(); } }
     homeCopyBtn.addEventListener('click',()=> copyText(shareLinkEl.textContent.trim()));
     copyLinkBtn.addEventListener('click',()=> copyText(shareLinkLobby.textContent.trim()));
 
-    // ======= state =======
+    // State
     let activeCode=null, turnState={currentTurn:null,order:[]};
 
-    // create/join
+    // Create room
     createBtn.addEventListener('click',()=>{
+      Sound.click();
       const code=makeCode(); activeCode=code;
       const url=shareURL(code);
       roomCodeEl.textContent=code; shareLinkEl.textContent=url; homeShare.classList.remove('hidden');
@@ -292,56 +290,113 @@
       stateCodeEl.textContent=code;
       view('viewLobby');
       shareLinkLobby.textContent=url; regenQR(qrLobby, url);
+      // ask server to broadcast a fresh snapshot just in case
+      setTimeout(()=> socket.emit('room:sync',{code}), 200);
     });
 
+    // Join via link hash
     const m=location.hash.match(/#room=([A-Z0-9]+)/i);
     if(m){ detectedRoomEl.textContent=m[1].toUpperCase(); joinCodeEl.value=m[1].toUpperCase(); linkHint.classList.remove('hidden'); }
-    function doJoin(){ const code=(joinCodeEl.value||detectedRoomEl.textContent||'').toUpperCase().trim(); if(!code) return; activeCode=code; stateCodeEl.textContent=code; socket.emit('room:join',{code,name:joinNameEl.value||'Player'}); view('viewLobby'); }
+    function doJoin(){ Sound.click(); const code=(joinCodeEl.value||detectedRoomEl.textContent||'').toUpperCase().trim(); if(!code) return; activeCode=code; stateCodeEl.textContent=code; socket.emit('room:join',{code,name:joinNameEl.value||'Player'}); view('viewLobby'); setTimeout(()=> socket.emit('room:sync',{code}), 200); }
     joinBtn.addEventListener('click',doJoin); joinNameEl.addEventListener('keydown',e=>{ if(e.key==='Enter') doJoin(); }); joinCodeEl.addEventListener('keydown',e=>{ if(e.key==='Enter') doJoin(); });
 
-    // host controls
-    setTopicBtn.addEventListener('click',()=>{ if(activeCode) socket.emit('topic:set',{code:activeCode,topic:topicSelect.value}); });
-    setTimerBtn.addEventListener('click',()=>{ if(activeCode) socket.emit('timer:set',{code:activeCode,seconds:timerInput.value}); });
-    setVoteTimerBtn.addEventListener('click',()=>{ if(activeCode) socket.emit('voteTimer:set',{code:activeCode,seconds:voteTimerInput.value}); });
-    const sendReveal=()=>{ if(activeCode) socket.emit('round:reveal',{code:activeCode}); };
-    dealBtn.addEventListener('click',()=>{ if(activeCode) socket.emit('round:deal',{code:activeCode}); });
-    discussBtn.addEventListener('click',()=>{ if(activeCode) socket.emit('round:discuss',{code:activeCode}); view('viewCountdown'); });
-    startVoteBtn.addEventListener('click',()=>{ if(activeCode) socket.emit('round:start-vote',{code:activeCode}); });
-    $('headerRevealBtn').addEventListener('click',sendReveal); $('revealBtn').addEventListener('click',sendReveal); panicRevealBtn.addEventListener('click',sendReveal);
-    leaveBtn.addEventListener('click',()=>{ socket.emit('room:leave'); activeCode=null; view('viewHome'); panicRevealBtn.style.display='none'; qrLobby.innerHTML=''; shareLinkLobby.textContent='—'; });
+    // Host controls
+    setTopicBtn.addEventListener('click',()=>{ Sound.click(); if(activeCode) socket.emit('topic:set',{code:activeCode,topic:topicSelect.value}); });
+    setTimerBtn.addEventListener('click',()=>{ Sound.click(); if(activeCode) socket.emit('timer:set',{code:activeCode,seconds:timerInput.value}); });
+    setVoteTimerBtn.addEventListener('click',()=>{ Sound.click(); if(activeCode) socket.emit('voteTimer:set',{code:activeCode,seconds:voteTimerInput.value}); });
+    const sendReveal=()=>{ Sound.reveal(); if(activeCode) socket.emit('round:reveal',{code:activeCode}); };
+    dealBtn.addEventListener('click',()=>{ Sound.click(); if(activeCode) socket.emit('round:deal',{code:activeCode}); });
+    discussBtn.addEventListener('click',()=>{ Sound.click(); if(activeCode) socket.emit('round:discuss',{code:activeCode}); view('viewCountdown'); });
+    startVoteBtn.addEventListener('click',()=>{ Sound.vote(); if(activeCode) socket.emit('round:start-vote',{code:activeCode}); });
+    headerRevealBtn.addEventListener('click',sendReveal); revealBtn.addEventListener('click',sendReveal); panicRevealBtn.addEventListener('click',sendReveal);
+    leaveBtn.addEventListener('click',()=>{ Sound.click(); socket.emit('room:leave'); activeCode=null; view('viewHome'); panicRevealBtn.style.display='none'; qrLobby.innerHTML=''; shareLinkLobby.textContent='—'; });
 
-    // turn send
+    // Turn UI
     function renderTurnUI(){
       turnChips.innerHTML='';
-      turnState.order.forEach(o=>{
+      (turnState.order||[]).forEach(o=>{
         const el=document.createElement('div'); el.className='px-3 py-1 rounded-full text-sm';
         const isNow = o.id===turnState.currentTurn; el.textContent=(o.name||'Player')+(isNow?' •':'');
         el.style.background=isNow?'#fde68a':'#e2e8f0'; el.style.fontWeight=isNow?'800':'600'; turnChips.appendChild(el);
       });
       if (turnState.currentTurn===socket.id){ turnInputWrap.classList.remove('hidden'); turnWait.classList.add('hidden'); turnInput.focus(); }
-      else { turnInputWrap.classList.add('hidden'); turnWait.classList.remove('hidden'); const who = turnState.order.find(p=>p.id===turnState.currentTurn)?.name || 'someone'; turnName.textContent=who; }
+      else { turnInputWrap.classList.add('hidden'); turnWait.classList.remove('hidden'); const who=(turnState.order||[]).find(p=>p.id===turnState.currentTurn)?.name||'someone'; turnName.textContent=who; }
     }
-    $('turnSend').addEventListener('click',()=>{ const w=turnInput.value.trim().slice(0,40); if(!w) return; socket.emit('turn:submit',{code:activeCode,word:w}); turnInput.value=''; });
-    turnInput.addEventListener('keydown',e=>{ if(e.key==='Enter') $('turnSend').click(); });
+    turnSend.addEventListener('click',()=>{ const w=turnInput.value.trim().slice(0,40); if(!w) return; Sound.success(); socket.emit('turn:submit',{code:activeCode,word:w}); turnInput.value=''; });
+    turnInput.addEventListener('keydown',e=>{ if(e.key==='Enter') turnSend.click(); });
 
-    // socket updates
+    // Socket updates
     socket.on('room:update',(data)=>{
       if(!activeCode || data.code!==activeCode) return;
-      playersEl.innerHTML=''; data.players.forEach(p=>{ const li=document.createElement('li'); li.className='px-3 py-1 rounded border text-sm'; const hostMark=(data.host===p.id)?' (host)':''; li.textContent=p.name+hostMark; playersEl.appendChild(li); });
+
+      playersEl.innerHTML=''; data.players.forEach(p=>{
+        const li=document.createElement('li'); li.className='px-3 py-1 rounded border text-sm';
+        const hostMark=(data.host===p.id)?' (host)':'';
+        li.textContent=p.name+hostMark; playersEl.appendChild(li);
+      });
+
       const isHost=(data.host===socket.id);
-      if(isHost){ hostBadge.classList.remove('hidden'); hostControls.classList.remove('hidden'); $('headerRevealBtn').classList.remove('hidden'); panicRevealBtn.style.display='block'; const url=shareURL(activeCode); shareLinkLobby.textContent=url; regenQR(qrLobby,url); }
-      else { hostBadge.classList.add('hidden'); hostControls.classList.add('hidden'); $('headerRevealBtn').classList.add('hidden'); panicRevealBtn.style.display='none'; const url=shareURL(activeCode); shareLinkLobby.textContent=url; }
-      currentTopic.textContent=data.topic||'—'; phaseBadge.textContent=data.phase||'lobby'; timerInput.value=data.timerSec||90; voteTimerInput.value=data.voteTimerSec||25;
-      if(data.phase==='lobby'||data.phase==='roles') view('viewLobby'); if(data.phase==='discuss') view('viewCountdown'); if(data.phase==='vote') view('viewVote'); if(data.phase==='reveal') view('viewReveal');
+      const url=shareURL(activeCode);
+      if(isHost){ hostBadge.classList.remove('hidden'); hostControls.classList.remove('hidden'); headerRevealBtn.classList.remove('hidden'); panicRevealBtn.style.display='block'; shareLinkLobby.textContent=url; regenQR(qrLobby,url); }
+      else { hostBadge.classList.add('hidden'); hostControls.classList.add('hidden'); headerRevealBtn.classList.add('hidden'); panicRevealBtn.style.display='none'; shareLinkLobby.textContent=url; }
+
+      currentTopic.textContent=data.topic||'—'; phaseBadge.textContent=data.phase||'lobby';
+      timerInput.value=data.timerSec||90; voteTimerInput.value=data.voteTimerSec||25;
+
+      if(data.phase==='lobby'||data.phase==='roles') view('viewLobby');
+      if(data.phase==='discuss') view('viewCountdown');
+      if(data.phase==='vote') view('viewVote');
+      if(data.phase==='reveal') view('viewReveal');
     });
+
     socket.on('turn:state',({currentTurn,order})=>{ turnState.currentTurn=currentTurn; turnState.order=(order||[]); renderTurnUI(); });
     socket.on('turn:word',({name,text})=>{ showWordFly(name,text); });
-    socket.on('timer:tick',({secs})=>{ $('bigTimer').textContent=secs; timerChip.classList.remove('hidden'); timerChip.textContent=`⏳ ${secs}s`; $('voteTimerChip').classList.remove('hidden'); $('voteTimerChip').textContent=`⏳ ${secs}s`; });
-    socket.on('timer:end',()=>{ timerChip.classList.add('hidden'); $('voteTimerChip').classList.add('hidden'); });
-    socket.on('role:assign',({topic,isImposter,word})=>{ currentTopic.textContent=topic||'—'; roleText.textContent=isImposter?'🎭 You are the IMPOSTER (X)':`🔐 Your word: ${word}`; roleText.className=isImposter?'text-3xl font-black text-rose-600':'text-3xl font-black text-emerald-700'; view('viewRoles'); });
+
+    socket.on('timer:tick',({secs})=>{
+      bigTimer.textContent=secs;
+      timerChip.classList.remove('hidden'); timerChip.textContent=`⏳ ${secs}s`;
+      voteTimerChip.classList.remove('hidden'); voteTimerChip.textContent=`⏳ ${secs}s`;
+      if (secs % 5 === 0) Sound.tick();
+    });
+    socket.on('timer:end',()=>{ timerChip.classList.add('hidden'); voteTimerChip.classList.add('hidden'); });
+
+    socket.on('role:assign',({topic,isImposter,word})=>{
+      currentTopic.textContent=topic||'—';
+      roleText.textContent = isImposter ? '🎭 You are the IMPOSTER (X)' : `🔐 Your word: ${word}`;
+      roleText.className = isImposter ? 'text-3xl font-black text-rose-600' : 'text-3xl font-black text-emerald-700';
+      view('viewRoles'); Sound.success();
+    });
+
+    function renderVoteTargets(players, meId){
+      voteTargets.innerHTML='';
+      players.filter(p=>p.id!==meId).forEach(p=>{
+        const b=document.createElement('button');
+        b.className='px-4 py-3 rounded-xl border hover:bg-slate-100 transition';
+        b.textContent=p.name;
+        b.onclick=()=>{ Sound.vote(); socket.emit('vote:cast',{code:activeCode,targetId:p.id}); };
+        voteTargets.appendChild(b);
+      });
+    }
+    socket.on('room:update',(data)=>{ if(!activeCode || data.code!==activeCode) return; if(data.phase==='vote'){ renderVoteTargets(data.players, socket.id); }});
     socket.on('vote:update',({tally})=>{ try{ tallyText.textContent=JSON.stringify(tally);}catch{ tallyText.textContent='{}'; } });
-    socket.on('round:results',({executed,isHit,imposters,secret})=>{ if(executed){ resultText.textContent=isHit?'✅ The impostor was caught!':'❌ Wrong guess — the impostor survived!'; if(!isHit){ secretWordLine.classList.remove('hidden'); secretWordLine.textContent=`Secret word: ${secret}`;} else { secretWordLine.classList.add('hidden'); } } else { resultText.textContent='No majority. No one was executed.'; secretWordLine.classList.add('hidden'); } try{ confetti({particleCount:200,spread:70,origin:{y:0.6}});}catch{} view('viewReveal'); });
-    socket.on('round:error', e=>{ if(e?.reason==='not_enough_players'){ toast(`Need at least ${e.need} players to deal (you have ${e.have}).`);} else { toast('Action failed.'); } });
+
+    socket.on('round:results',({executed,isHit,imposters,secret})=>{
+      if(executed){
+        resultText.textContent = isHit ? '✅ The impostor was caught!' : '❌ Wrong guess — the impostor survived!';
+        if(!isHit){ secretWordLine.classList.remove('hidden'); secretWordLine.textContent=`Secret word: ${secret}`; }
+        else { secretWordLine.classList.add('hidden'); }
+      } else {
+        resultText.textContent = 'No majority. No one was executed.';
+        secretWordLine.classList.add('hidden');
+      }
+      try{ confetti({particleCount:200, spread:70, origin:{y:0.6}}); }catch{}
+      view('viewReveal'); Sound.reveal();
+    });
+
+    socket.on('round:error', e=>{
+      if(e?.reason==='not_enough_players'){ toast(`Need at least ${e.need} players to deal (you have ${e.have}).`); Sound.error(); }
+      else { toast('Action failed.'); Sound.error(); }
+    });
   </script>
 </body>
 </html>
