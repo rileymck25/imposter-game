@@ -14,7 +14,6 @@
     .btn-game{border-radius:14px;font-weight:700;padding:.9rem 1.1rem;}
     .btn-primary{background:#6366f1;color:#fff;} .btn-primary:hover{background:#5458e9;}
     .btn-ghost{border:1px solid #cbd5e1;background:#fff;}
-    .title{font-weight:900;letter-spacing:.3px}
     .vote-row{position:relative;border-radius:16px;border:1px solid #e5e7eb;background:#fff;overflow:hidden}
     .vote-fill{position:absolute;left:0;top:0;bottom:0;width:0%;background:linear-gradient(90deg,rgba(239,68,68,.10),rgba(239,68,68,.6));transition:width .2s ease;}
     #menuDrawer{position:fixed;right:-360px;top:0;bottom:0;width:340px;background:#0f172a;color:#fff;z-index:9999;box-shadow:-6px 0 24px rgba(0,0,0,.35);transition:right .22s ease;}
@@ -28,19 +27,19 @@
     #panicReveal{position:fixed;bottom:22px;right:22px;z-index:9990;display:none;border:none;border-radius:50px;background:linear-gradient(180deg,#ff1a2a 0%,#c70f1c 100%);color:#fff;box-shadow:0 12px 24px rgba(199,15,28,.45)}
     .wordChip{display:none}
     .wordChip.show{display:inline-flex}
+    .impChip{display:none}
+    .impChip.show{display:inline-flex}
   </style>
 </head>
 <body class="bg-slate-100">
-  <div id="globalToast" class="hidden fixed left-1/2 -translate-x-1/2 top-4 bg-black text-white px-3 py-2 rounded-lg text-sm z-[99999]"></div>
-
   <header class="px-5 py-3 bg-white/80 backdrop-blur shadow-sm sticky top-0 z-40">
     <div class="max-w-4xl mx-auto flex items-center justify-between">
-      <div class="title text-xl">🕵️ Imposter Game</div>
-      <div class="flex items-center gap-2">
-        <button id="menuBtn" class="text-xs px-3 py-1 rounded-lg border">☰ Menu</button>
-        <button id="linkBaseBtn" class="text-xs px-3 py-1 rounded-lg border">Link Base</button>
-        <button id="muteBtn" class="text-xs px-3 py-1 rounded-lg border">🔊 Sound</button>
-        <div class="text-xs text-slate-500">Status: <span id="conn">connecting…</span> · <span id="sid">—</span></div>
+      <div class="font-black text-xl">🕵️ Imposter Game</div>
+      <div class="flex items-center gap-2 text-xs">
+        <button id="menuBtn" class="px-3 py-1 rounded-lg border">☰ Menu</button>
+        <button id="linkBaseBtn" class="px-3 py-1 rounded-lg border">Link Base</button>
+        <button id="muteBtn" class="px-3 py-1 rounded-lg border">🔊 Sound</button>
+        <div class="text-slate-500">Status: <span id="conn">connecting…</span> · <span id="sid">—</span></div>
       </div>
     </div>
   </header>
@@ -49,7 +48,7 @@
     <!-- HOME -->
     <section id="viewHome" class="space-y-6">
       <div class="paper rounded-2xl shadow p-6">
-        <h2 class="title text-2xl mb-2">Start a game</h2>
+        <h2 class="text-2xl font-black mb-2">Start a game</h2>
         <div class="flex gap-2">
           <input id="hostName" class="border rounded-lg px-3 py-2 flex-1" placeholder="Your name (host)">
           <button id="createBtn" class="btn-game btn-primary">Create Room</button>
@@ -67,7 +66,7 @@
       </div>
 
       <div class="paper rounded-2xl shadow p-6">
-        <h2 class="title text-2xl mb-2">Join a game</h2>
+        <h2 class="text-2xl font-black mb-2">Join a game</h2>
         <div class="grid sm:grid-cols-[1fr_auto] gap-2">
           <input id="joinCode" class="border rounded-lg px-3 py-2" placeholder="Enter room code (e.g., ABC123)">
           <div class="flex gap-2">
@@ -147,17 +146,20 @@
       </div>
     </section>
 
-    <!-- COUNTDOWN -->
+    <!-- DISCUSSION -->
     <section id="viewCountdown" class="hidden">
       <div class="aurora rounded-2xl shadow p-10 text-center text-white relative overflow-hidden">
         <div class="text-lg opacity-90">Discussion Time</div>
         <div id="bigTimer" class="text-7xl md:text-8xl font-black tracking-tight mt-2 drop-shadow">90</div>
         <div class="opacity-90 mt-2">Talk it out. Imposter—blend in.</div>
 
-        <!-- NEW: show your word while discussing (if not imposter) -->
+        <!-- Show YOUR role/word right here -->
         <div id="myWordChip" class="wordChip mt-3 inline-flex items-center gap-2 bg-white/15 backdrop-blur px-3 py-1 rounded-full">
           <span class="text-xs opacity-80">Your word:</span>
           <span id="myWordVal" class="font-bold"></span>
+        </div>
+        <div id="impChip" class="impChip mt-3 inline-flex items-center gap-2 bg-rose-600/90 px-3 py-1 rounded-full font-bold">
+          <span>🎭 YOU ARE THE IMPOSTER</span>
         </div>
 
         <div id="turnUI" class="mt-8 bg-white/15 backdrop-blur rounded-xl p-4">
@@ -177,14 +179,15 @@
     <section id="viewVote" class="hidden">
       <div class="paper rounded-2xl shadow p-6">
         <div class="flex items-center justify-between">
-          <div class="title text-xl">Who’s sus?</div>
+          <div class="text-xl font-black">Who’s sus?</div>
           <div id="voteTimerChip" class="chip hidden">⏳ 0s</div>
         </div>
         <div id="voteList" class="mt-4 space-y-3"></div>
 
+        <!-- Jailbreak: now shown ONLY to impostors -->
         <div id="jailbreakWrap" class="hidden mt-6 p-4 rounded-xl bg-rose-50 border border-rose-200">
           <div class="font-bold text-rose-700 mb-1">Imposter Jailbreak</div>
-          <div class="text-sm text-rose-700/80 mb-2">If you’re the impostor, guess the secret word to break out instantly!</div>
+          <div class="text-sm text-rose-700/80 mb-2">Guess the secret word to break out instantly!</div>
           <div class="flex gap-2">
             <input id="jailGuess" maxlength="32" class="border rounded-lg px-3 py-2 flex-1" placeholder="Your guess (impostor only)">
             <button id="jailBtn" class="px-4 py-2 rounded-lg bg-rose-600 text-white font-bold">Break Out</button>
@@ -212,7 +215,7 @@
     <span class="px-5 py-3 font-bold">🚨 Reveal Now</span>
   </button>
 
-  <!-- Menu Drawer -->
+  <!-- Menu Drawer (unchanged UI) -->
   <aside id="menuDrawer" aria-hidden="true">
     <div class="p-4 text-xs opacity-80">Menu</div>
     <div class="p-4 space-y-2">
@@ -238,93 +241,88 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    // --- Sounds (same as before) ---
+    // Sounds
     const Sound=(()=>{let ctx,muted=localStorage.getItem('imposter.muted')==='1';
       function ensure(){ if(!ctx) ctx=new (window.AudioContext||window.webkitAudioContext)(); if(ctx.state==='suspended') ctx.resume(); return ctx; }
       function tone(f=440,d=.07,type='square',g=.05){ if(muted) return; const c=ensure(),o=c.createOscillator(),ga=c.createGain(); o.type=type;o.frequency.value=f;ga.gain.value=g;o.connect(ga).connect(c.destination);o.start();o.stop(c.currentTime+d); }
       function sweep(f1,f2,d=.5,type='sawtooth',g=.05){ if(muted) return; const c=ensure(),o=c.createOscillator(),ga=c.createGain(); o.type=type;o.frequency.setValueAtTime(f1,c.currentTime);o.frequency.exponentialRampToValueAtTime(f2,c.currentTime+d);ga.gain.value=g;o.connect(ga).connect(c.destination);o.start();o.stop(c.currentTime+d); }
-      return{ click(){tone(320,.05)}, success(){tone(660,.06,'triangle');setTimeout(()=>tone(880,.07,'triangle'),60)}, error(){sweep(140,120,.18)}, reveal(){sweep(500,140,.5);setTimeout(()=>sweep(300,900,.5,'triangle'),380)}, vote(){tone(420,.08)}, tick(){tone(260,.03)}, get muted(){return muted}, setMuted(v){muted=!!v;localStorage.setItem('imposter.muted',muted?'1':'0');} };
+      return{ click(){tone(320,.05)}, success(){tone(660,.06,'triangle');setTimeout(()=>tone(880,.07,'triangle'),60)}, error(){sweep(140,120,.18)}, reveal(){sweep(500,140,.5);setTimeout(()=>sweep(300,900,.5,'triangle'),380)}, tick(){tone(260,.03)}, get muted(){return muted}, setMuted(v){muted=!!v;localStorage.setItem('imposter.muted',muted?'1':'0');} };
     })();
 
     const $=id=>document.getElementById(id);
-    function toast(msg){ const t=$('globalToast'); t.textContent=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'),1400); }
     function view(id){['viewHome','viewLobby','viewRoles','viewCountdown','viewVote','viewReveal'].forEach(v=>$(v).classList.add('hidden')); $(id).classList.remove('hidden');}
-    function makeCode(len=6){const c='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<len;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
-    function regenQR(el,url){ if(!el) return; el.innerHTML=''; new QRCode(el,{text:url,width:140,height:140}); }
-    function wordFly(n,t){ const d=document.createElement('div'); d.style.position='fixed'; d.style.left='-20%'; d.style.top='50%'; d.style.transform='translateY(-50%)'; d.style.padding='.4em .7em'; d.style.fontWeight='900'; d.style.fontSize='clamp(28px,6vw,60px)'; d.style.borderRadius='.7em'; d.style.color='#fff'; d.style.background='linear-gradient(135deg,rgba(99,102,241,.95),rgba(236,72,153,.95))'; d.style.zIndex=9998; d.style.whiteSpace='nowrap'; d.textContent=`${n}: ${t}`; document.body.appendChild(d); Sound.success(); d.animate([{transform:'translate(-20%,-50%) scale(.9)',opacity:0},{transform:'translate(120vw,-50%) scale(1)',opacity:1}],{duration:2100,easing:'ease-out'}).onfinish=()=>d.remove(); }
 
-    const socket=io(); const connEl=$('conn'), sidEl=$('sid');
-    socket.on('connect',()=>{connEl.textContent='connected ✅'; sidEl.textContent=socket.id; connEl.className='text-emerald-700';});
-    socket.on('disconnect',r=>{connEl.textContent=`offline (${r})`; connEl.className='text-rose-700'; sidEl.textContent='—';});
+    const socket=io();
+    const conn=$('conn'), sid=$('sid');
+    socket.on('connect',()=>{conn.textContent='connected ✅'; conn.className='text-emerald-700'; sid.textContent=socket.id;});
+    socket.on('disconnect',r=>{conn.textContent=`offline (${r})`; conn.className='text-rose-700'; sid.textContent='—';});
 
-    // base link for share
     const RENDER_DEFAULT='https://imposter-game-b1s8.onrender.com';
     let linkBase=localStorage.getItem('imposter.linkBase')||(location.hostname==='localhost'?RENDER_DEFAULT:location.origin);
     const shareURL=code=>`${linkBase}${location.pathname}#room=${code}`;
 
-    // refs (many)
-    const hostNameEl=$('hostName'), createBtn=$('createBtn'), homeShare=$('homeShare'), roomCodeEl=$('roomCode'), shareLinkEl=$('shareLink'), qrHome=$('qrHome'), homeCopyBtn=$('homeCopyBtn');
-    const joinNameEl=$('joinName'), joinCodeEl=$('joinCode'), joinBtn=$('joinBtn'), linkHint=$('linkHint'), detectedRoomEl=$('detectedRoom');
-    const stateCodeEl=$('stateCode'), playersEl=$('players'), hostBadge=$('hostBadge'), phaseBadge=$('phaseBadge'), timerChip=$('timerChip');
-    const hostControls=$('hostControls'), topicSelect=$('topicSelect'), setTopicBtn=$('setTopicBtn'), currentTopic=$('currentTopic');
-    const timerInput=$('timerInput'), setTimerBtn=$('setTimerBtn'), voteTimerInput=$('voteTimerInput'), setVoteTimerBtn=$('setVoteTimerBtn');
+    // refs
+    const hostName=$('hostName'), createBtn=$('createBtn'), homeShare=$('homeShare'), roomCode=$('roomCode'),
+          shareLink=$('shareLink'), qrHome=$('qrHome'), homeCopy=$('homeCopyBtn');
+    const joinName=$('joinName'), joinCode=$('joinCode'), joinBtn=$('joinBtn'), linkHint=$('linkHint'), detectedRoom=$('detectedRoom');
+    const stateCode=$('stateCode'), players=$('players'), hostBadge=$('hostBadge'), phaseBadge=$('phaseBadge');
+    const hostControls=$('hostControls'), topicSel=$('topicSelect'), setTopic=$('setTopicBtn'), currentTopic=$('currentTopic');
+    const timerIn=$('timerInput'), setTimer=$('setTimerBtn'), voteTimerIn=$('voteTimerInput'), setVoteTimer=$('setVoteTimerBtn');
     const dealBtn=$('dealBtn'), discussBtn=$('discussBtn'), startVoteBtn=$('startVoteBtn'), revealBtn=$('revealBtn'), headerRevealBtn=$('headerRevealBtn');
     const qrLobby=$('qrLobby'), shareLinkLobby=$('shareLinkLobby'), copyLinkBtn=$('copyLinkBtn');
-    const roleText=$('roleText'), bigTimer=$('bigTimer'), voteTimerChip=$('voteTimerChip');
+    const bigTimer=$('bigTimer'), voteTimerChip=$('voteTimerChip');
     const turnChips=$('turnChips'), turnInputWrap=$('turnInputWrap'), turnInput=$('turnInput'), turnSend=$('turnSend'), turnWait=$('turnWait'), turnName=$('turnName');
-    const myWordChip=$('myWordChip'), myWordVal=$('myWordVal');
+    const myWordChip=$('myWordChip'), myWordVal=$('myWordVal'), impChip=$('impChip');
     const voteList=$('voteList'), resultText=$('resultText'), secretWordLine=$('secretWordLine'), jbLine=$('jbLine');
-    const playAgainBtn=$('playAgainBtn'), exitBtn=$('exitBtn');
+    const playAgain=$('playAgainBtn'), exitBtn=$('exitBtn');
     const jailbreakWrap=$('jailbreakWrap'), jailGuess=$('jailGuess'), jailBtn=$('jailBtn');
-    const panicReveal=$('panicReveal'), linkBaseBtn=$('linkBaseBtn'), muteBtn=$('muteBtn'), menuBtn=$('menuBtn');
-    const menuDrawer=$('menuDrawer'), menuPlayers=$('menuPlayers'), menuChat=$('menuChat'), menuEnd=$('menuEnd'), menuLeave=$('menuLeave'), menuHome=$('menuHome');
+    const muteBtn=$('muteBtn'), linkBaseBtn=$('linkBaseBtn'), menuBtn=$('menuBtn'), menuDrawer=$('menuDrawer');
+    const menuPlayers=$('menuPlayers'), menuChat=$('menuChat'), menuEnd=$('menuEnd'), menuLeave=$('menuLeave'), menuHome=$('menuHome');
     const dmPanel=$('dmPanel'), dmTarget=$('dmTarget'), dmLog=$('dmLog'), dmInput=$('dmInput'), dmSend=$('dmSend');
-
-    // mute & link base
-    function renderMute(){ Sound.muted? (muteBtn.textContent='🔇 Muted') : (muteBtn.textContent='🔊 Sound'); }
-    renderMute(); muteBtn.onclick=()=>{ Sound.setMuted(!Sound.muted); renderMute(); if(!Sound.muted) Sound.success(); };
-    linkBaseBtn.onclick=()=>{ const v=prompt('Enter base URL for share links (e.g., your Render URL):', linkBase); if(!v) return; try{ const u=new URL(v); linkBase=u.origin; localStorage.setItem('imposter.linkBase',linkBase); toast('Link base updated'); if(activeCode){ const url=shareURL(activeCode); $('shareLink').textContent=url; $('shareLinkLobby').textContent=url; regenQR(qrHome,url); regenQR(qrLobby,url);} }catch{ toast('Invalid URL'); } };
+    const panicReveal=$('panicReveal');
 
     // state
     let activeCode=null, lastState=null, myWord=null, amImposter=false;
 
-    // create/join
-    createBtn.onclick=()=>{ const code=makeCode(); activeCode=code; const url=shareURL(code); roomCodeEl.textContent=code; shareLinkEl.textContent=url; homeShare.classList.remove('hidden'); regenQR(qrHome,url); socket.emit('room:create',{code,name:hostNameEl.value||'Host'}); stateCodeEl.textContent=code; view('viewLobby'); shareLinkLobby.textContent=url; regenQR(qrLobby,url); setTimeout(()=>socket.emit('room:sync',{code}),200); };
-    homeCopyBtn.onclick=()=>{ navigator.clipboard.writeText(shareLinkEl.textContent.trim()); toast('Link copied!'); };
-    copyLinkBtn.onclick=()=>{ navigator.clipboard.writeText(shareLinkLobby.textContent.trim()); toast('Link copied!'); };
+    // mute/link base
+    function renderMute(){ muteBtn.textContent = Sound.muted ? '🔇 Muted' : '🔊 Sound'; }
+    renderMute();
+    muteBtn.onclick=()=>{ Sound.setMuted(!Sound.muted); renderMute(); };
+    linkBaseBtn.onclick=()=>{ const v=prompt('Base URL for share links:', linkBase); if(!v) return; try{ const u=new URL(v); linkBase=u.origin; localStorage.setItem('imposter.linkBase',linkBase); if(activeCode){ const url=shareURL(activeCode); shareLink.textContent=url; shareLinkLobby.textContent=url; new QRCode(qrHome,{text:url,width:140,height:140}); } }catch{ alert('Invalid URL'); } };
 
-    const m=location.hash.match(/#room=([A-Z0-9]+)/i);
-    if(m){ detectedRoomEl.textContent=m[1].toUpperCase(); joinCodeEl.value=m[1].toUpperCase(); linkHint.classList.remove('hidden'); }
-    function doJoin(){ const code=(joinCodeEl.value||detectedRoomEl.textContent||'').toUpperCase().trim(); if(!code) return; activeCode=code; stateCodeEl.textContent=code; socket.emit('room:join',{code,name:joinNameEl.value||'Player'}); view('viewLobby'); setTimeout(()=>socket.emit('room:sync',{code}),200); }
-    joinBtn.onclick=doJoin; joinCodeEl.onkeydown=e=>{ if(e.key==='Enter') doJoin(); }; joinNameEl.onkeydown=e=>{ if(e.key==='Enter') doJoin(); };
+    // create/join
+    function regenQR(el,url){ el.innerHTML=''; new QRCode(el,{text:url,width:140,height:140}); }
+    createBtn.onclick=()=>{ const code=makeCode(); activeCode=code; const url=shareURL(code); roomCode.textContent=code; shareLink.textContent=url; homeShare.classList.remove('hidden'); regenQR(qrHome,url); socket.emit('room:create',{code,name:hostName.value||'Host'}); stateCode.textContent=code; view('viewLobby'); shareLinkLobby.textContent=url; regenQR(qrLobby,url); setTimeout(()=>socket.emit('room:sync',{code}),200); };
+    homeCopy.onclick=()=>navigator.clipboard.writeText(shareURL(activeCode));
+    copyLinkBtn.onclick=()=>navigator.clipboard.writeText(shareURL(activeCode));
+    const m=location.hash.match(/#room=([A-Z0-9]+)/i); if(m){ detectedRoom.textContent=m[1].toUpperCase(); joinCode.value=m[1].toUpperCase(); linkHint.classList.remove('hidden'); }
+    function doJoin(){ const code=(joinCode.value||detectedRoom.textContent||'').toUpperCase().trim(); if(!code) return; activeCode=code; stateCode.textContent=code; socket.emit('room:join',{code,name:joinName.value||'Player'}); view('viewLobby'); setTimeout(()=>socket.emit('room:sync',{code}),200); }
+    joinBtn.onclick=doJoin; joinCode.onkeydown=e=>{ if(e.key==='Enter') doJoin(); }; joinName.onkeydown=e=>{ if(e.key==='Enter') doJoin(); };
 
     // host controls
-    setTopicBtn.onclick=()=>{ if(activeCode) socket.emit('topic:set',{code:activeCode,topic:topicSelect.value}); };
-    setTimerBtn.onclick=()=>{ if(activeCode) socket.emit('timer:set',{code:activeCode,seconds:timerInput.value}); };
-    setVoteTimerBtn.onclick=()=>{ if(activeCode) socket.emit('voteTimer:set',{code:activeCode,seconds:voteTimerInput.value}); };
-    dealBtn.onclick=()=>{ if(activeCode) socket.emit('round:deal',{code:activeCode}); };
-    discussBtn.onclick=()=>{ if(activeCode) socket.emit('round:discuss',{code:activeCode}); view('viewCountdown'); };
-    startVoteBtn.onclick=()=>{ if(activeCode) socket.emit('round:start-vote',{code:activeCode}); };
-    const sendReveal=()=>{ if(activeCode) socket.emit('round:reveal',{code:activeCode}); };
+    setTopic.onclick=()=>socket.emit('topic:set',{code:activeCode,topic:topicSel.value});
+    setTimer.onclick=()=>socket.emit('timer:set',{code:activeCode,seconds:timerIn.value});
+    setVoteTimer.onclick=()=>socket.emit('voteTimer:set',{code:activeCode,seconds:voteTimerIn.value});
+    dealBtn.onclick=()=>socket.emit('round:deal',{code:activeCode});
+    discussBtn.onclick=()=>{ socket.emit('round:discuss',{code:activeCode}); view('viewCountdown'); /* ask server to remind our role/word */ socket.emit('role:remind',{code:activeCode}); };
+    startVoteBtn.onclick=()=>socket.emit('round:start-vote',{code:activeCode});
+    const sendReveal=()=>socket.emit('round:reveal',{code:activeCode});
     headerRevealBtn.onclick=sendReveal; panicReveal.onclick=sendReveal; revealBtn.onclick=sendReveal;
 
-    // menu
-    menuBtn.onclick=()=> menuDrawer.classList.toggle('open');
-    menuPlayers.onclick=()=>{ if(!lastState) return; alert('Players:\n\n'+lastState.players.map(p=>`• ${p.name}${p.id===lastState.host?' (host)':''}`).join('\n')); };
-    menuChat.onclick=()=> dmPanel.classList.toggle('open');
-    menuEnd.onclick=()=>{ if(!lastState || lastState.host!==socket.id){ toast('Only the host can end the game.'); return; } if(confirm('End the game for everyone?')) socket.emit('game:end',{code:activeCode}); };
-    function leaveGame(){ socket.emit('room:leave'); activeCode=null; view('viewHome'); menuDrawer.classList.remove('open'); }
-    menuLeave.onclick=leaveGame; menuHome.onclick=leaveGame;
-
-    // DM
+    // menu & DM (same behavior as before)
+    menuBtn.onclick=()=>menuDrawer.classList.toggle('open');
+    menuPlayers.onclick=()=>{ if(!lastState) return; alert(lastState.players.map(p=>`${p.name}${p.id===lastState.host?' (host)':''}`).join('\n')); };
+    menuChat.onclick=()=>dmPanel.classList.toggle('open');
+    menuEnd.onclick=()=>{ if(!lastState || lastState.host!==socket.id) return alert('Only host'); if(confirm('End game for everyone?')) socket.emit('game:end',{code:activeCode}); };
+    function leave(){ socket.emit('room:leave'); activeCode=null; view('viewHome'); menuDrawer.classList.remove('open'); }
+    menuLeave.onclick=leave; menuHome.onclick=leave;
     const chats=new Map();
-    function renderTargets(state){ dmTarget.innerHTML=''; (state?.players||[]).filter(p=>p.id!==socket.id).forEach(p=>{ const o=document.createElement('option'); o.value=p.id; o.textContent=p.name; dmTarget.appendChild(o); }); }
-    function renderDM(){ const id=dmTarget.value; const log=chats.get(id)||[]; dmLog.innerHTML=''; log.slice(-100).forEach(m=>{ const b=document.createElement('div'); b.className='dmBubble '+(m.from===socket.id?'dmMe':'dmThem'); b.textContent=m.text; dmLog.appendChild(b); }); dmLog.scrollTop=dmLog.scrollHeight; }
-    dmTarget.onchange=renderDM;
-    dmSend.onclick=()=>{ const id=dmTarget.value, text=dmInput.value.trim(); if(!id||!text) return; socket.emit('dm:send',{code:activeCode,to:id,text}); dmInput.value=''; };
-    socket.on('dm:msg', m=>{ const key=m.from===socket.id? m.to : m.from; if(!chats.has(key)) chats.set(key,[]); chats.get(key).push(m); if(dmTarget.value===key) renderDM(); });
+    function renderTargets(s){ dmTarget.innerHTML=''; (s?.players||[]).filter(p=>p.id!==socket.id).forEach(p=>{ const o=document.createElement('option'); o.value=p.id; o.textContent=p.name; dmTarget.appendChild(o); }); }
+    function renderDM(){ const id=dmTarget.value, log=chats.get(id)||[]; dmLog.innerHTML=''; log.slice(-100).forEach(m=>{ const b=document.createElement('div'); b.className='dmBubble '+(m.from===socket.id?'dmMe':'dmThem'); b.textContent=m.text; dmLog.appendChild(b); }); dmLog.scrollTop=dmLog.scrollHeight; }
+    dmTarget.onchange=renderDM; dmSend.onclick=()=>{ const id=dmTarget.value, text=dmInput.value.trim(); if(!id||!text) return; socket.emit('dm:send',{code:activeCode,to:id,text}); dmInput.value=''; };
+    socket.on('dm:msg', m=>{ const key=m.from===socket.id? m.to : m.from; (chats.get(key)||chats.set(key,[]).get(key)).push(m); if(dmTarget.value===key) renderDM(); });
 
-    // voting UI
+    // vote UI
     function renderVoteBars(players){
       voteList.innerHTML='';
       players.filter(p=>p.id!==socket.id).forEach(p=>{
@@ -345,27 +343,27 @@
       });
     }
 
-    // sockets → UI
+    // socket events
     socket.on('room:update',(data)=>{
       if(!activeCode || data.code!==activeCode) return; lastState=data;
 
-      playersEl.innerHTML=''; data.players.forEach(p=>{ const li=document.createElement('li'); li.className='px-3 py-1 rounded border text-sm'; li.textContent=p.name+(data.host===p.id?' (host)':''); playersEl.appendChild(li); });
-
+      players.innerHTML=''; data.players.forEach(p=>{ const li=document.createElement('li'); li.className='px-3 py-1 rounded border text-sm'; li.textContent=p.name+(data.host===p.id?' (host)':''); players.appendChild(li); });
       renderTargets(data);
 
       const isHost=(data.host===socket.id);
       const url=shareURL(activeCode);
       if(isHost){ hostBadge.classList.remove('hidden'); hostControls.classList.remove('hidden'); headerRevealBtn.classList.remove('hidden'); panicReveal.style.display='block'; shareLinkLobby.textContent=url; regenQR(qrLobby,url); }
-      else { hostBadge.classList.add('hidden'); hostControls.classList.add('hidden'); headerRevealBtn.classList.add('hidden'); panicReveal.style.display='none'; shareLinkLobby.textContent=url; }
+      else{ hostBadge.classList.add('hidden'); hostControls.classList.add('hidden'); headerRevealBtn.classList.add('hidden'); panicReveal.style.display='none'; shareLinkLobby.textContent=url; }
 
       currentTopic.textContent=data.topic||'—'; phaseBadge.textContent=data.phase||'lobby';
-      timerInput.value=data.timerSec||90; voteTimerInput.value=data.voteTimerSec||25;
+      timerIn.value=data.timerSec||90; voteTimerIn.value=data.voteTimerSec||25;
 
-      jailbreakWrap.style.display = data.phase==='vote' ? 'block' : 'none';
-      if (data.phase==='vote') renderVoteBars(data.players);
+      // Show jailbreak only for impostor
+      jailbreakWrap.style.display = (data.phase==='vote' && amImposter) ? 'block' : 'none';
 
+      if(data.phase==='vote') renderVoteBars(data.players);
+      if(data.phase==='discuss'){ view('viewCountdown'); socket.emit('role:remind',{code:activeCode}); } // remind role on entry
       if(data.phase==='lobby'||data.phase==='roles') view('viewLobby');
-      if(data.phase==='discuss') view('viewCountdown');
       if(data.phase==='vote') view('viewVote');
       if(data.phase==='reveal') view('viewReveal');
       if(data.phase==='ended'){ view('viewReveal'); resultText.textContent='🛑 Game ended by host'; secretWordLine.classList.add('hidden'); jbLine.classList.add('hidden'); }
@@ -373,62 +371,70 @@
 
     socket.on('timer:tick',({secs})=>{ bigTimer.textContent=secs; voteTimerChip.classList.remove('hidden'); voteTimerChip.textContent=`⏳ ${secs}s`; if(secs%5===0) Sound.tick(); });
 
-    // IMPORTANT: server now sends order WITH names
     socket.on('turn:state',({currentTurn,order})=>{
       turnChips.innerHTML='';
       (order||[]).forEach(o=>{
         const el=document.createElement('div');
-        const isNow = (o.id===currentTurn);
-        el.className = 'px-3 py-1 rounded-full text-sm ' + (isNow?'bg-yellow-200 font-bold text-black':'bg-slate-200 text-black/80');
-        el.textContent = o.name || 'Player';
+        el.className='px-3 py-1 rounded-full text-sm '+(o.id===currentTurn?'bg-yellow-200 font-bold':'bg-slate-200');
+        el.textContent=o.name||'Player';
         turnChips.appendChild(el);
       });
-      const myTurn = (currentTurn===socket.id);
-      turnInputWrap.classList.toggle('hidden', !myTurn);
-      turnWait.classList.toggle('hidden', myTurn);
-      const who=(order||[]).find(p=>p.id===currentTurn)?.name || 'someone';
-      turnName.textContent = who;
+      const myTurn=(currentTurn===socket.id);
+      turnInputWrap.classList.toggle('hidden',!myTurn);
+      turnWait.classList.toggle('hidden',myTurn);
+      const who=(order||[]).find(p=>p.id===currentTurn)?.name||'someone';
+      turnName.textContent=who;
     });
 
-    socket.on('turn:word',({name,text})=>wordFly(name,text));
-
+    // Always show role/word on both role screen AND when reminded
     socket.on('role:assign',({topic,isImposter,word})=>{
       currentTopic.textContent=topic||'—';
-      amImposter = !!isImposter;
+      amImposter=!!isImposter;
       myWord = isImposter ? null : word;
-      roleText.textContent = isImposter ? '🎭 You are the IMPOSTER (X)' : `🔐 Your word: ${word}`;
-      roleText.className = isImposter ? 'text-3xl font-black text-rose-300' : 'text-3xl font-black text-white';
-      view('viewRoles');
-      // prep the discussion word chip
-      if (!amImposter && myWord) { myWordVal.textContent = myWord; myWordChip.classList.add('show'); } else { myWordChip.classList.remove('show'); }
+
+      // Update chips used on the discussion screen
+      if(amImposter){ impChip.classList.add('show'); myWordChip.classList.remove('show'); }
+      else { myWordVal.textContent=word; myWordChip.classList.add('show'); impChip.classList.remove('show'); }
+
+      // If we're currently in roles view, show the big banner too
+      if(!document.getElementById('viewRoles').classList.contains('hidden')){
+        const roleText=document.getElementById('roleText');
+        roleText.textContent = amImposter ? '🎭 You are the IMPOSTER (X)' : `🔐 Your word: ${word}`;
+        roleText.className = amImposter ? 'text-3xl font-black text-rose-300' : 'text-3xl font-black text-white';
+      }
     });
 
-    socket.on('vote:update',({tally,total})=>updateVoteBars(tally,total));
+    socket.on('turn:word',({name,text})=>{
+      const d=document.createElement('div'); d.style.position='fixed'; d.style.left='-20%'; d.style.top='50%'; d.style.transform='translateY(-50%)'; d.style.padding='.4em .7em'; d.style.fontWeight='900'; d.style.fontSize='clamp(28px,6vw,60px)'; d.style.borderRadius='.7em'; d.style.color='#fff'; d.style.background='linear-gradient(135deg,rgba(99,102,241,.95),rgba(236,72,153,.95))'; d.style.zIndex=9998; d.style.whiteSpace='nowrap'; d.textContent=`${name}: ${text}`; document.body.appendChild(d); d.animate([{transform:'translate(-20%,-50%) scale(.9)',opacity:0},{transform:'translate(120vw,-50%) scale(1)',opacity:1}],{duration:2000,easing:'ease-out'}).onfinish=()=>d.remove();
+    });
 
-    socket.on('round:results',({executed,isHit,imposters,secret,jailbreak})=>{
+    socket.on('vote:update',({tally,total})=>{
+      (lastState?.players||[]).forEach(p=>{
+        const count=(tally||{})[p.id]||0; const percent=total?Math.round((count/total)*100):0;
+        const fill=document.getElementById(`fill-${p.id}`), pct=document.getElementById(`pct-${p.id}`);
+        if(fill) fill.style.width=`${percent}%`;
+        if(pct) pct.textContent=`${count} vote${count!==1?'s':''}`;
+      });
+    });
+
+    socket.on('round:results',({executed,isHit,secret,jailbreak})=>{
       jbLine.classList.add('hidden');
       if(jailbreak){ resultText.textContent='🔓 The impostor broke out!'; jbLine.classList.remove('hidden'); secretWordLine.classList.add('hidden'); }
       else if(executed){ resultText.textContent = isHit ? '✅ The impostor was caught!' : '❌ Wrong guess — the impostor survived!'; if(!isHit){ secretWordLine.classList.remove('hidden'); secretWordLine.textContent=`Secret word: ${secret}`; } else secretWordLine.classList.add('hidden'); }
       else { resultText.textContent='No majority. No one was executed.'; secretWordLine.classList.add('hidden'); }
       try{ confetti({particleCount:220, spread:70, origin:{y:0.6}}); }catch{}
-      Sound.reveal();
     });
 
-    socket.on('round:error', e=>{ toast(e?.reason==='not_enough_players' ? `Need at least ${e.need} players.` : 'Action failed.'); });
-    socket.on('game:ended', ()=>{ view('viewReveal'); resultText.textContent='🛑 Game ended by host'; secretWordLine.classList.add('hidden'); jbLine.classList.add('hidden'); });
+    socket.on('guess:result',({ok})=>{ if(!ok) alert('No jailbreak — wrong word.'); });
 
-    // send word & jail guess
+    // actions
     turnSend.onclick=()=>{ const w=turnInput.value.trim().slice(0,40); if(!w) return; socket.emit('turn:submit',{code:activeCode,word:w}); turnInput.value=''; };
     turnInput.onkeydown=e=>{ if(e.key==='Enter') turnSend.onclick(); };
     jailBtn.onclick=()=>{ const g=jailGuess.value.trim(); if(!g) return; socket.emit('imposter:guess',{code:activeCode,guess:g}); jailGuess.value=''; };
-    socket.on('guess:result',({ok})=>{ if(!ok) toast('No jailbreak — wrong word.'); });
-
-    // reveal footer
-    playAgainBtn.onclick=()=>{ if(!lastState || lastState.host!==socket.id){ toast('Only the host can start again.'); return; } socket.emit('game:reset',{code:activeCode}); };
+    playAgain.onclick=()=>{ if(!lastState || lastState.host!==socket.id) return alert('Only host'); socket.emit('game:reset',{code:activeCode}); };
     exitBtn.onclick=()=>{ socket.emit('room:leave'); activeCode=null; view('viewHome'); };
 
-    // misc
-    const linkBaseBtnEl=$('linkBaseBtn'); linkBaseBtnEl && (linkBaseBtnEl.onclick=linkBaseBtn.onclick);
+    function makeCode(len=6){const c='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<len;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
   </script>
 </body>
 </html>

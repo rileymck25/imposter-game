@@ -18,16 +18,6 @@ const WORD_LISTS = {
 const pick = a => a[Math.floor(Math.random()*a.length)];
 const norm = s => String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
 
-/**
- rooms: Map<code, {
-   code, host,
-   players: Map<socketId,{name,isImposter?,word?,voteFor?,guessed?}>,
-   topic, phase,       // 'lobby'|'roles'|'discuss'|'vote'|'reveal'|'ended'
-   secretWord,
-   timerSec, voteTimerSec,
-   roundNumber, order: string[], startIndex, currentTurn, turnsRemaining
- }>
-*/
 const rooms = new Map();
 const timers = new Map();
 
@@ -104,7 +94,6 @@ function doReveal(code, jailbreak=null){
   emitUpdate(code);
 }
 
-// -------- sockets --------
 io.on('connection', (socket) => {
   let currentRoom = null;
 
@@ -121,11 +110,17 @@ io.on('connection', (socket) => {
   });
   socket.on('room:sync', ({ code }) => emitUpdate(code));
 
+  // NEW: remind a player of their role/word on demand
+  socket.on('role:remind', ({ code }) => {
+    const r=rooms.get(code); if(!r) return;
+    const p=r.players.get(socket.id); if(!p) return;
+    io.to(socket.id).emit('role:assign',{topic:r.topic||'classic', isImposter:!!p.isImposter, word:p.word||null});
+  });
+
   socket.on('topic:set', ({ code, topic }) => {
     const room=rooms.get(code); if(!room||room.host!==socket.id) return;
     const key=String(topic||'').toLowerCase();
     room.topic=['classic','disney','tech','food'].includes(key)?key:'classic';
-    // reset to lobby
     room.phase='lobby'; room.secretWord=null; room.currentTurn=null; room.turnsRemaining=0;
     for (const [,p] of room.players){ delete p.isImposter; delete p.word; delete p.voteFor; delete p.guessed; }
     emitUpdate(code);
@@ -133,7 +128,6 @@ io.on('connection', (socket) => {
   socket.on('timer:set', ({code,seconds}) => { const r=rooms.get(code); if(!r||r.host!==socket.id) return; const s=Math.floor(Number(seconds)); if(s>=10&&s<=600){ r.timerSec=s; emitUpdate(code); }});
   socket.on('voteTimer:set', ({code,seconds}) => { const r=rooms.get(code); if(!r||r.host!==socket.id) return; const s=Math.floor(Number(seconds)); if(s>=5&&s<=180){ r.voteTimerSec=s; emitUpdate(code); }});
 
-  // Round flow
   socket.on('round:deal', ({ code }) => {
     const room=rooms.get(code); if(!room||room.host!==socket.id) return;
     const ids=Array.from(room.players.keys());
@@ -159,8 +153,6 @@ io.on('connection', (socket) => {
     if(!room.order||room.order.length===0) room.order=Array.from(room.players.keys());
     room.turnsRemaining=room.order.length;
     room.currentTurn=room.order[room.startIndex];
-
-    // IMPORTANT: send names with the order so the client doesn't depend on prior room:update timing
     const orderWithNames = room.order.map(id => ({ id, name: room.players.get(id)?.name || 'Player' }));
     io.to(code).emit('turn:state',{ currentTurn: room.currentTurn, order: orderWithNames });
     emitUpdate(code);
@@ -210,7 +202,7 @@ io.on('connection', (socket) => {
     if(ok) doReveal(code,{success:true,by:socket.id}); else io.to(socket.id).emit('guess:result',{ok:false});
   });
 
-  // Game controls
+  // End/Reset
   socket.on('game:end', ({ code }) => {
     const r=rooms.get(code); if(!r||r.host!==socket.id) return;
     stopTimer(code); r.phase='ended'; emitUpdate(code); io.to(code).emit('game:ended');
@@ -223,7 +215,7 @@ io.on('connection', (socket) => {
     emitUpdate(code);
   });
 
-  // Private DM
+  // DM
   socket.on('dm:send', ({ code, to, text }) => {
     const r=rooms.get(code); if(!r) return;
     const fromP=r.players.get(socket.id); if(!fromP || !r.players.has(to)) return;
@@ -232,7 +224,6 @@ io.on('connection', (socket) => {
     io.to(socket.id).emit('dm:msg', payload);
   });
 
-  // leave/disconnect
   function removeFromRoom(rCode, id){
     const r=rooms.get(rCode); if(!r) return;
     r.players.delete(id);
