@@ -9,18 +9,29 @@ const io = new Server(server, { cors: { origin: "*" } });
 app.use(express.static('web'));
 app.use(express.json());
 
-// ---- word lists ----
+// ---------- word lists ----------
 const WORD_LISTS = {
   classic: ['apple','jupiter','guitar','ocean','pyramid','subway','volcano','pancake','tornado','compass','castle'],
   disney:  ['Cinderella','Epcot','Imagineer','Monorail','Dole Whip','Haunted Mansion','Tinker Bell','Fantasia','Skyliner'],
   tech:    ['firewall','container','webhook','endpoint','kernel','router','timestamp','payload','virtualization'],
   food:    ['lasagna','sushi','taco','croissant','ramen','gelato','barbecue','dumpling','paella']
 };
-const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const norm = s => String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
 
-// ---- room state ----
-const rooms = new Map(); // code -> room
-const timers = new Map(); // code -> { interval, endsAt, kind }
+// ---------- in-memory state ----------
+/**
+ rooms: Map<code, {
+   code, host,
+   players: Map<socketId,{name,isImposter?,word?,voteFor?,guessed?}>,
+   topic, phase,
+   secretWord,
+   timerSec, voteTimerSec,
+   roundNumber, order: string[], startIndex, currentTurn, turnsRemaining
+ }>
+*/
+const rooms = new Map();
+const timers = new Map();
 
 const ensureRoom = (code) => {
   if (!rooms.has(code)) {
@@ -35,6 +46,7 @@ const ensureRoom = (code) => {
   }
   return rooms.get(code);
 };
+
 const publicState = (room) => ({
   code: room.code,
   host: room.host,
@@ -46,15 +58,24 @@ const publicState = (room) => ({
   order: room.order.map(id => ({ id, name: room.players.get(id)?.name || 'Player' })),
   players: Array.from(room.players.entries()).map(([id,p])=>({id,name:p.name}))
 });
+
 const emitUpdate = (code) => { const r = rooms.get(code); if (r) io.to(code).emit('room:update', publicState(r)); };
 const stopTimer = (code) => { const t = timers.get(code); if (t?.interval) clearInterval(t.interval); timers.delete(code); };
 
-// ---- vote & reveal helpers ----
+// ---------- vote / reveal helpers ----------
+function broadcastTally(room){
+  const tally = {};
+  let voted = 0;
+  for (const [,p] of room.players) if (p.voteFor) { tally[p.voteFor] = (tally[p.voteFor]||0)+1; voted++; }
+  io.to(room.code).emit('vote:update', { tally, total: room.players.size });
+  return { tally, voted };
+}
+
 function enterVote(code){
   const room = rooms.get(code); if (!room) return;
   stopTimer(code);
   room.phase = 'vote';
-  for (const [,p] of room.players) p.voteFor = null;
+  for (const [,p] of room.players) { p.voteFor = null; p.guessed = false; }
   room.currentTurn = null; room.turnsRemaining = 0;
   emitUpdate(code);
 
@@ -66,11 +87,29 @@ function enterVote(code){
     if (ms <= 0) { stopTimer(code); doReveal(code); }
   }, 250);
   timers.set(code, { interval, endsAt, kind: 'vote' });
+
+  broadcastTally(room);
 }
-function doReveal(code){
+
+function doReveal(code, jailbreak = null){
   const room = rooms.get(code); if (!room) return;
   stopTimer(code);
 
+  // jailbreak shortcut result
+  if (jailbreak && jailbreak.success) {
+    room.phase = 'reveal';
+    io.to(code).emit('round:results', {
+      executed: null,
+      isHit: false,
+      imposters: Array.from(room.players.entries()).filter(([id,p])=>p.isImposter).map(([id])=>id),
+      secret: room.secretWord,
+      jailbreak: { by: jailbreak.by, word: room.secretWord }
+    });
+    emitUpdate(code);
+    return;
+  }
+
+  // normal vote outcome
   const votes = {};
   for (const [, p] of room.players) if (p.voteFor) votes[p.voteFor] = (votes[p.voteFor] || 0) + 1;
   let executed = null, max = -1;
@@ -84,7 +123,7 @@ function doReveal(code){
   emitUpdate(code);
 }
 
-// ---- sockets ----
+// ---------- sockets ----------
 io.on('connection', (socket) => {
   let currentRoom = null;
 
@@ -105,8 +144,7 @@ io.on('connection', (socket) => {
     emitUpdate(code);
   });
 
-  // NEW: let clients ask for a fresh snapshot (fixes any missed join)
-  socket.on('room:sync', ({ code }) => { emitUpdate(code); });
+  socket.on('room:sync', ({ code }) => emitUpdate(code));
 
   socket.on('topic:set', ({ code, topic }) => {
     const room = rooms.get(code);
@@ -116,7 +154,7 @@ io.on('connection', (socket) => {
     room.phase = 'lobby';
     room.secretWord = null;
     room.currentTurn = null; room.turnsRemaining = 0;
-    for (const [,p] of room.players) { delete p.isImposter; delete p.word; delete p.voteFor; }
+    for (const [,p] of room.players) { delete p.isImposter; delete p.word; delete p.voteFor; delete p.guessed; }
     emitUpdate(code);
   });
 
@@ -134,14 +172,14 @@ io.on('connection', (socket) => {
     if (s >= 5 && s <= 180) { room.voteTimerSec = s; emitUpdate(code); }
   });
 
+  // deal
   socket.on('round:deal', ({ code }) => {
     const room = rooms.get(code);
     if (!room || room.host !== socket.id) return;
 
     const ids = Array.from(room.players.keys());
-    const minPlayers = 3;
-    if (ids.length < minPlayers) {
-      io.to(socket.id).emit('round:error', { reason: 'not_enough_players', need: minPlayers, have: ids.length });
+    if (ids.length < 3) {
+      io.to(socket.id).emit('round:error', { reason: 'not_enough_players', need: 3, have: ids.length });
       return;
     }
 
@@ -155,21 +193,21 @@ io.on('connection', (socket) => {
       const isImp = id === imposterId;
       p.isImposter = isImp;
       p.word = isImp ? null : secret;
-      p.voteFor = null;
+      p.voteFor = null; p.guessed = false;
       io.to(id).emit('role:assign', { topic, isImposter: isImp, word: isImp ? null : secret });
     }
 
     room.order = Array.from(room.players.keys());
     room.roundNumber = (room.roundNumber || 0) + 1;
     room.startIndex = (room.roundNumber - 1) % room.order.length;
-    room.currentTurn = null;
-    room.turnsRemaining = 0;
+    room.currentTurn = null; room.turnsRemaining = 0;
 
     room.phase = 'roles';
     stopTimer(code);
     emitUpdate(code);
   });
 
+  // discuss
   socket.on('round:discuss', ({ code }) => {
     const room = rooms.get(code);
     if (!room || room.host !== socket.id) return;
@@ -198,12 +236,12 @@ io.on('connection', (socket) => {
     enterVote(code);
   });
 
+  // turns
   socket.on('turn:submit', ({ code, word }) => {
     const room = rooms.get(code);
     if (!room || room.phase !== 'discuss') return;
     const clean = String(word || '').trim().slice(0, 40);
-    if (!clean) return;
-    if (socket.id !== room.currentTurn) return;
+    if (!clean || socket.id !== room.currentTurn) return;
 
     const player = room.players.get(socket.id);
     io.to(code).emit('turn:word', { pid: socket.id, name: player?.name || 'Player', text: clean });
@@ -219,6 +257,7 @@ io.on('connection', (socket) => {
     }
   });
 
+  // votes
   socket.on('vote:cast', ({ code, targetId }) => {
     const room = rooms.get(code);
     if (!room || room.phase !== 'vote') return;
@@ -227,23 +266,33 @@ io.on('connection', (socket) => {
     if (!voter) return;
     voter.voteFor = targetId;
 
-    const tally = {};
-    let voted = 0;
-    for (const [,p] of room.players) if (p.voteFor) { tally[p.voteFor] = (tally[p.voteFor] || 0) + 1; voted++; }
-    io.to(code).emit('vote:update', { tally });
-
+    const { voted } = broadcastTally(room);
     if (voted === room.players.size) doReveal(code);
   });
 
+  // NEW: imposter jailbreak guess
+  socket.on('imposter:guess', ({ code, guess }) => {
+    const room = rooms.get(code);
+    if (!room || room.phase !== 'vote') return;
+    const p = room.players.get(socket.id);
+    if (!p?.isImposter || p.guessed) return;
+    p.guessed = true;
+
+    const ok = norm(guess) === norm(room.secretWord);
+    if (ok) doReveal(code, { success: true, by: socket.id });
+    else io.to(socket.id).emit('guess:result', { ok: false });
+  });
+
+  // reveal button
   socket.on('round:reveal', ({ code }) => {
     const room = rooms.get(code);
     if (!room || room.host !== socket.id) return;
     doReveal(code);
   });
 
+  // leave/disconnect
   function removeFromRoom(rCode, id) {
-    const room = rooms.get(rCode);
-    if (!room) return;
+    const room = rooms.get(rCode); if (!room) return;
     room.players.delete(id);
     if (room.host === id) room.host = null;
 
@@ -263,17 +312,8 @@ io.on('connection', (socket) => {
     if (room.players.size === 0) { stopTimer(rCode); rooms.delete(rCode); }
   }
 
-  socket.on('room:leave', () => {
-    if (!currentRoom) return;
-    removeFromRoom(currentRoom, socket.id);
-    socket.leave(currentRoom);
-    currentRoom = null;
-  });
-
-  socket.on('disconnect', () => {
-    if (!currentRoom) return;
-    removeFromRoom(currentRoom, socket.id);
-  });
+  socket.on('room:leave', () => { if (!currentRoom) return; removeFromRoom(currentRoom, socket.id); socket.leave(currentRoom); currentRoom = null; });
+  socket.on('disconnect',     () => { if (!currentRoom) return; removeFromRoom(currentRoom, socket.id); });
 });
 
 const PORT = process.env.PORT || 3000;

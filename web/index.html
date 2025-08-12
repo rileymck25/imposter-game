@@ -6,43 +6,51 @@
   <title>Imposter Game</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss/dist/tailwind.min.css">
   <style>
-    :root{ --bg1:#0ea5e9; --bg2:#9333ea; --bg3:#ef4444; }
-    .aurora{ background:linear-gradient(120deg,var(--bg1),var(--bg2),var(--bg3)); background-size:200% 200%; animation:auroraShift 8s ease-in-out infinite; }
-    @keyframes auroraShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    :root{ --bg1:#0ea5e9; --bg2:#9333ea; --bg3:#ef4444; --bg4:#22c55e; }
+    .aurora{ background:linear-gradient(120deg,var(--bg1),var(--bg2),var(--bg3)); background-size:200% 200%; animation:aurora 10s ease-in-out infinite; }
+    @keyframes aurora{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    .paper{ background:
+      radial-gradient(circle at 20% 10%, rgba(255,255,255,.35), transparent 40%),
+      radial-gradient(circle at 80% 0%, rgba(255,255,255,.25), transparent 45%),
+      linear-gradient(135deg, rgba(255,255,255,.6), rgba(255,255,255,.2));
+      position:relative; overflow:hidden;
+    }
+    .paper:after{ content:''; position:absolute; inset:0; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 10 10'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='1' cy='1' r='1'/%3E%3C/g%3E%3C/svg%3E"); pointer-events:none; }
     .chip{padding:.25rem .6rem;border-radius:9999px;background:#e2e8f0;font-weight:600;}
     .btn-game{border-radius:14px;font-weight:700;padding:.9rem 1.1rem;}
     .btn-primary{background:#6366f1;color:#fff;} .btn-primary:hover{background:#5458e9;}
-    .btn-ghost{border:1px solid #cbd5e1;}
+    .btn-ghost{border:1px solid #cbd5e1;background:#fff;}
     .title{font-weight:900;letter-spacing:.3px}
     .fade{animation:fade .35s ease both;} @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
-    #panicReveal{position:fixed;bottom:22px;right:22px;z-index:9999;display:none;border:none;cursor:pointer;padding:0;border-radius:50px;background:linear-gradient(180deg,#ff1a2a 0%,#c70f1c 100%);color:#fff;box-shadow:0 12px 24px rgba(199,15,28,.45),inset 0 3px 0 rgba(255,255,255,.25);animation:sus-wiggle 2.2s ease-in-out infinite;}
-    #panicReveal .btn-inner{position:relative;display:flex;align-items:center;gap:14px;padding:16px 26px 16px 18px;border-radius:50px;overflow:hidden;}
+    #panicReveal{position:fixed;bottom:22px;right:22px;z-index:9999;display:none;border:none;cursor:pointer;padding:0;border-radius:50px;background:linear-gradient(180deg,#ff1a2a 0%,#c70f1c 100%);color:#fff;box-shadow:0 12px 24px rgba(199,15,28,.45),inset 0 3px 0 rgba(255,255,255,.25);animation:wiggle 2.2s ease-in-out infinite;}
+    #panicReveal .btn-inner{display:flex;align-items:center;gap:14px;padding:16px 26px 16px 18px;border-radius:50px;position:relative;overflow:hidden;}
     #panicReveal .btn-inner::before{content:"";position:absolute;inset:0;background:radial-gradient(200px 80px at 50% -40px,rgba(255,255,255,.55),transparent 65%)}
     #panicReveal .visor{width:54px;height:34px;border-radius:22px;background:linear-gradient(180deg,#c6f0ff,#9ad8ff 45%,#6fbde8);box-shadow:inset 0 2px 0 rgba(255,255,255,.7),inset 0 -4px 10px rgba(0,0,0,.25);border:2px solid rgba(0,0,0,.15);position:relative;}
+    #panicReveal .visor::after{content:"";position:absolute;left:8px;top:6px;width:14px;height:8px;border-radius:10px;background:rgba(255,255,255,.8)}
     #panicReveal .label{font-weight:900;letter-spacing:.5px;font-size:1.1rem;text-shadow:0 1px 0 rgba(0,0,0,.25);display:flex;flex-direction:column;line-height:1.1;}
     #panicReveal .label .small{font-size:.70rem;opacity:.85;font-weight:700;letter-spacing:.2px;}
-    #panicReveal:hover{transform:translateY(-2px);box-shadow:0 14px 26px rgba(199,15,28,.5)}
-    @keyframes sus-wiggle{0%,100%{transform:rotate(0) translateY(0)}12%{transform:rotate(-2.2deg) translateY(-1px)}24%{transform:rotate(2deg)}36%{transform:rotate(-1.5deg)}48%{transform:rotate(1.5deg)}60%{transform:rotate(0)}}
+    @keyframes wiggle{0%,100%{transform:rotate(0)}12%{transform:rotate(-2.2deg)}24%{transform:rotate(2deg)}36%{transform:rotate(-1.5deg)}48%{transform:rotate(1.5deg)}60%{transform:rotate(0)}}
 
-    .copy-btn{position:relative;border:none;padding:.8rem 1rem;border-radius:14px;color:#fff;font-weight:800;letter-spacing:.3px;background:linear-gradient(135deg,#22c55e,#16a34a);box-shadow:0 8px 18px rgba(22,163,74,.35);transition:transform .12s ease,box-shadow .12s ease;overflow:hidden;}
+    .copy-btn{position:relative;border:none;padding:.9rem 1rem;border-radius:14px;color:#fff;font-weight:800;letter-spacing:.3px;background:linear-gradient(135deg,#22c55e,#16a34a);box-shadow:0 8px 18px rgba(22,163,74,.35);transition:transform .12s ease,box-shadow .12s ease;}
     .copy-btn:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(22,163,74,.45)}
-    .copy-btn:active{transform:translateY(0);box-shadow:0 6px 14px rgba(22,163,74,.35)}
-    .copy-btn::after{content:"";position:absolute;inset:0;background:radial-gradient(160px 40px at 50% -20px,rgba(255,255,255,.45),transparent 60%);pointer-events:none}
-
     #globalToast{position:fixed;left:50%;transform:translateX(-50%);top:18px;z-index:99999;background:#0f172a;color:#fff;padding:.6rem .9rem;border-radius:12px;font-size:.9rem;box-shadow:0 10px 20px rgba(0,0,0,.25);display:none}
     #muteBtn{border:1px solid #cbd5e1}
     #muteBtn.active{background:#0f172a;color:#fff;border-color:#0f172a}
 
     .word-fly{position:fixed;left:-20%;top:50%;transform:translateY(-50%);font-weight:900;font-size:clamp(28px,6vw,64px);color:#fff;text-shadow:0 4px 16px rgba(0,0,0,.35);padding:.2em .5em;border-radius:.6em;background:linear-gradient(135deg,rgba(99,102,241,.95),rgba(236,72,153,.95));z-index:9998;white-space:nowrap;animation:flyAcross 2.1s ease-out forwards;}
     .word-fly small{font-size:.45em;font-weight:700;opacity:.9;margin-right:.6em;}
-    @keyframes flyAcross{0%{transform:translate(-20%,-50%) scale(.9) rotate(-2deg);opacity:0}10%{opacity:1}60%{transform:translate(40vw,-50%) scale(1.02) rotate(0)}100%{transform:translate(120vw,-50%) scale(1) rotate(2deg);opacity:0}}
+    @keyframes flyAcross{0%{transform:translate(-20%,-50%) scale(.9) rotate(-2deg);opacity:0}10%{opacity:1}60%{transform:translate(40vw,-50%) scale(1.02)}100%{transform:translate(120vw,-50%) scale(1);opacity:0}}
+
+    /* Big vote bars */
+    .vote-row{position:relative;border-radius:16px;border:1px solid #e5e7eb;background:#fff;overflow:hidden}
+    .vote-fill{position:absolute;left:0;top:0;bottom:0;width:0%;background:linear-gradient(90deg,rgba(239,68,68,.10),rgba(239,68,68,.6));transition:width .2s ease;}
   </style>
 </head>
 <body class="bg-slate-100">
   <div id="globalToast"></div>
 
-  <header class="px-5 py-3 bg-white shadow-sm sticky top-0 z-40">
+  <header class="px-5 py-3 bg-white/80 backdrop-blur shadow-sm sticky top-0 z-40">
     <div class="max-w-4xl mx-auto flex items-center justify-between">
       <div class="title text-xl">🕵️ Imposter Game</div>
       <div class="flex items-center gap-2">
@@ -53,10 +61,10 @@
     </div>
   </header>
 
-  <main class="max-w-4xl mx-auto p-5">
+  <main class="max-w-4xl mx-auto p-5 space-y-6">
     <!-- HOME -->
     <section id="viewHome" class="fade space-y-6">
-      <div class="bg-white rounded-2xl shadow p-6">
+      <div class="paper rounded-2xl shadow p-6">
         <h2 class="title text-2xl mb-2">Start a game</h2>
         <div class="flex gap-2">
           <input id="hostName" class="border rounded-lg px-3 py-2 flex-1" placeholder="Your name (host)">
@@ -74,7 +82,7 @@
         </div>
       </div>
 
-      <div class="bg-white rounded-2xl shadow p-6">
+      <div class="paper rounded-2xl shadow p-6">
         <h2 class="title text-2xl mb-2">Join a game</h2>
         <div class="grid sm:grid-cols-[1fr_auto] gap-2">
           <input id="joinCode" class="border rounded-lg px-3 py-2" placeholder="Enter room code (e.g., ABC123)">
@@ -89,7 +97,7 @@
 
     <!-- LOBBY -->
     <section id="viewLobby" class="hidden fade space-y-4">
-      <div class="bg-white rounded-2xl shadow p-6">
+      <div class="paper rounded-2xl shadow p-6">
         <div class="flex items-center justify-between flex-wrap gap-3">
           <div class="text-lg font-semibold">Room <span id="stateCode">—</span></div>
           <div class="flex items-center gap-2">
@@ -149,17 +157,16 @@
 
     <!-- ROLES -->
     <section id="viewRoles" class="hidden fade">
-      <div class="bg-white rounded-2xl shadow p-8 text-center">
-        <div class="text-slate-500">Your role</div>
+      <div class="aurora rounded-2xl shadow p-8 text-center text-white">
+        <div class="text-slate-100/90">Your role</div>
         <div id="roleText" class="text-3xl font-black mt-2"></div>
-        <div class="text-xs text-slate-500 mt-3">Keep this secret!</div>
+        <div class="text-xs opacity-80 mt-3">Keep this secret!</div>
       </div>
     </section>
 
     <!-- COUNTDOWN -->
     <section id="viewCountdown" class="hidden fade">
       <div class="aurora rounded-2xl shadow p-10 text-center text-white relative overflow-hidden">
-        <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(600px 200px at 50% -120px, rgba(255,255,255,.35), transparent 60%);"></div>
         <div class="text-lg opacity-90">Discussion Time</div>
         <div id="bigTimer" class="text-7xl md:text-8xl font-black tracking-tight mt-2 drop-shadow">90</div>
         <div class="opacity-90 mt-2">Talk it out. Imposter—blend in.</div>
@@ -179,13 +186,27 @@
 
     <!-- VOTE -->
     <section id="viewVote" class="hidden fade">
-      <div class="bg-white rounded-2xl shadow p-6">
+      <div class="paper rounded-2xl shadow p-6">
         <div class="flex items-center justify-between">
-          <div class="title text-xl">Cast your vote</div>
+          <div class="title text-xl">Who’s sus?</div>
           <div id="voteTimerChip" class="chip hidden">⏳ 0s</div>
         </div>
-        <div id="voteTargets" class="flex flex-wrap gap-2 mt-4"></div>
-        <div class="text-xs text-slate-500 mt-2">Live tally: <span id="tallyText">{}</span></div>
+
+        <!-- Big bars -->
+        <div id="voteList" class="mt-4 space-y-3"></div>
+
+        <!-- Imposter Jailbreak -->
+        <div id="jailbreakWrap" class="hidden mt-6 p-4 rounded-xl bg-rose-50 border border-rose-200">
+          <div class="font-bold text-rose-700 mb-2">Imposter Jailbreak</div>
+          <div class="text-sm text-rose-700/80 mb-2">If you’re the impostor, try to guess the secret word. If you’re right you break out instantly!</div>
+          <div class="flex gap-2">
+            <input id="jailGuess" maxlength="32" class="border rounded-lg px-3 py-2 flex-1" placeholder="Your guess (impostor only)">
+            <button id="jailBtn" class="px-4 py-2 rounded-lg bg-rose-600 text-white font-bold">Break Out</button>
+          </div>
+          <div id="jailHint" class="text-xs text-rose-700/70 mt-1">One guess per round.</div>
+        </div>
+
+        <div class="text-xs text-slate-500 mt-3">Tap a bar to vote. Bars fill red as votes stack up.</div>
       </div>
     </section>
 
@@ -194,6 +215,7 @@
       <div class="aurora rounded-2xl shadow p-8 text-center text-white relative overflow-hidden">
         <div class="text-3xl font-black" id="resultText">—</div>
         <div id="secretWordLine" class="opacity-90 mt-2 text-lg hidden"></div>
+        <div id="jbLine" class="mt-2 text-lg font-bold hidden">🔓 JAILBREAK!</div>
       </div>
     </section>
   </main>
@@ -209,28 +231,19 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    // ===== Sound manager (restored) =====
+    // ===== Sound (same as before) =====
     const Sound = (() => {
       let ctx, muted = localStorage.getItem('imposter.muted') === '1';
       function ensure(){ if(!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)(); if(ctx.state==='suspended') ctx.resume(); return ctx; }
       function tone(f=440,d=0.07,type='square',g=0.05){ if(muted) return; const c=ensure(); const o=c.createOscillator(); const ga=c.createGain(); o.type=type; o.frequency.value=f; ga.gain.value=g; o.connect(ga).connect(c.destination); o.start(); o.stop(c.currentTime+d); }
       function sweep(f1,f2,d=0.5,type='sawtooth',g=0.05){ if(muted) return; const c=ensure(); const o=c.createOscillator(); const ga=c.createGain(); o.type=type; o.frequency.setValueAtTime(f1,c.currentTime); o.frequency.exponentialRampToValueAtTime(f2,c.currentTime+d); ga.gain.value=g; o.connect(ga).connect(c.destination); o.start(); o.stop(c.currentTime+d); }
-      return {
-        click(){ tone(320,0.05,'square',0.05); tone(520,0.05,'square',0.03); },
-        success(){ tone(660,0.06,'triangle',0.05); setTimeout(()=>tone(880,0.07,'triangle',0.05),60); },
-        error(){ sweep(140,120,0.18,'sawtooth',0.06); },
-        reveal(){ sweep(500,140,0.5,'sawtooth',0.05); setTimeout(()=>sweep(300,900,0.5,'triangle',0.04),380); },
-        vote(){ tone(420,0.08,'square',0.05); },
-        tick(){ tone(260,0.03,'square',0.03); },
-        word(){ tone(700,0.05,'triangle',0.05); tone(500,0.06,'triangle',0.04); },
-        get muted(){ return muted; }, setMuted(v){ muted=!!v; localStorage.setItem('imposter.muted', muted?'1':'0'); }
-      };
+      return { click(){tone(320,0.05);}, success(){tone(660,0.06,'triangle'); setTimeout(()=>tone(880,0.07,'triangle'),60); }, error(){sweep(140,120,0.18);}, reveal(){sweep(500,140,0.5); setTimeout(()=>sweep(300,900,0.5,'triangle'),380);}, vote(){tone(420,0.08);}, tick(){tone(260,0.03);}, word(){tone(700,0.05,'triangle'); tone(500,0.06,'triangle',0.04);}, get muted(){return muted}, setMuted(v){muted=!!v; localStorage.setItem('imposter.muted', muted?'1':'0');} };
     })();
 
-    // ===== sockets / helpers =====
+    // ===== helpers =====
     const $ = id => document.getElementById(id);
     const socket = io();
-    const connEl = $('conn'), sidEl = $('sid');
+    const connEl=$('conn'), sidEl=$('sid');
     socket.on('connect',()=>{connEl.textContent='connected ✅';sidEl.textContent=socket.id;connEl.className='text-emerald-700';});
     socket.on('disconnect',r=>{connEl.textContent=`offline (${r})`;connEl.className='text-rose-700';sidEl.textContent='—';});
 
@@ -238,12 +251,12 @@
     function view(id){['viewHome','viewLobby','viewRoles','viewCountdown','viewVote','viewReveal'].forEach(v=>$(v).classList.add('hidden')); $(id).classList.remove('hidden');}
     function makeCode(len=6){const c='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<len;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
     function regenQR(el,url){ if(!el) return; el.innerHTML=''; new QRCode(el,{text:url,width:140,height:140}); }
-    function showWordFly(name,text){ const el=document.createElement('div'); el.className='word-fly'; el.innerHTML=`<small>${name}:</small> ${text}`; document.body.appendChild(el); Sound.word(); setTimeout(()=>el.remove(),2300); }
+    function showWordFly(n,t){ const el=document.createElement('div'); el.className='word-fly'; el.innerHTML=`<small>${n}:</small> ${t}`; document.body.appendChild(el); Sound.word(); setTimeout(()=>el.remove(),2300); }
 
-    // Link base (Render default on localhost)
-    const RENDER_DEFAULT = 'https://imposter-game-b1s8.onrender.com';
-    let linkBase = localStorage.getItem('imposter.linkBase') || (location.hostname==='localhost'?RENDER_DEFAULT:location.origin);
-    function shareURL(code){ return `${linkBase}${location.pathname}#room=${code}`; }
+    // link base (Render default on localhost)
+    const RENDER_DEFAULT='https://imposter-game-b1s8.onrender.com';
+    let linkBase=localStorage.getItem('imposter.linkBase')||(location.hostname==='localhost'?RENDER_DEFAULT:location.origin);
+    const shareURL=code=>`${linkBase}${location.pathname}#room=${code}`;
 
     // refs
     const linkBaseBtn=$('linkBaseBtn'), muteBtn=$('muteBtn');
@@ -256,51 +269,43 @@
     const dealBtn=$('dealBtn'), discussBtn=$('discussBtn'), startVoteBtn=$('startVoteBtn'), revealBtn=$('revealBtn');
     const qrLobby=$('qrLobby'), shareLinkLobby=$('shareLinkLobby'), copyLinkBtn=$('copyLinkBtn');
     const roleText=$('roleText'), bigTimer=$('bigTimer'), voteTimerChip=$('voteTimerChip');
-    const voteTargets=$('voteTargets'), tallyText=$('tallyText');
-    const resultText=$('resultText'), secretWordLine=$('secretWordLine');
+    const voteList=$('voteList'), tallyText=$('tallyText'); // tallyText kept for debug (hidden)
+    const resultText=$('resultText'), secretWordLine=$('secretWordLine'), jbLine=$('jbLine');
     const panicRevealBtn=$('panicReveal');
     const turnChips=$('turnChips'), turnInputWrap=$('turnInputWrap'), turnInput=$('turnInput'), turnSend=$('turnSend'), turnWait=$('turnWait'), turnName=$('turnName');
+    const jailWrap=$('jailbreakWrap'), jailGuess=$('jailGuess'), jailBtn=$('jailBtn'), jailHint=$('jailHint');
 
-    // Mute toggle
+    // mute
     function renderMute(){ Sound.muted ? (muteBtn.classList.add('active'), muteBtn.textContent='🔇 Muted') : (muteBtn.classList.remove('active'), muteBtn.textContent='🔊 Sound'); }
     renderMute(); muteBtn.addEventListener('click',()=>{ Sound.setMuted(!Sound.muted); renderMute(); if(!Sound.muted) Sound.success(); });
 
-    // Link Base prompt
-    linkBaseBtn.addEventListener('click',()=>{ Sound.click(); const v=prompt('Enter base URL for share links (e.g., https://imposter-game-b1s8.onrender.com):', linkBase); if(!v) return;
-      try{ const u=new URL(v); linkBase=u.origin; localStorage.setItem('imposter.linkBase', linkBase); toast(`Link base set to ${linkBase}`); if(activeCode){ const url=shareURL(activeCode); $('shareLink').textContent=url; $('shareLinkLobby').textContent=url; regenQR(qrHome,url); regenQR(qrLobby,url);} }
-      catch{ toast('Invalid URL'); }
-    });
+    // link base
+    linkBaseBtn.addEventListener('click',()=>{ Sound.click(); const v=prompt('Enter base URL (e.g., your Render URL):', linkBase); if(!v) return; try{ const u=new URL(v); linkBase=u.origin; localStorage.setItem('imposter.linkBase',linkBase); toast(`Link base set to ${linkBase}`); if(activeCode){ const url=shareURL(activeCode); $('shareLink').textContent=url; $('shareLinkLobby').textContent=url; regenQR(qrHome,url); regenQR(qrLobby,url);} }catch{ toast('Invalid URL'); } });
 
-    // Copy helpers
-    async function copyText(text){ if(!text) return; try{ await navigator.clipboard.writeText(text); toast('Link copied!'); Sound.success(); } catch{ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('Link copied!'); Sound.success(); } }
-    homeCopyBtn.addEventListener('click',()=> copyText(shareLinkEl.textContent.trim()));
-    copyLinkBtn.addEventListener('click',()=> copyText(shareLinkLobby.textContent.trim()));
+    // copy
+    async function copyText(t){ if(!t) return; try{ await navigator.clipboard.writeText(t); }catch{ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); } toast('Link copied!'); Sound.success(); }
+    homeCopyBtn.addEventListener('click',()=>copyText(shareLinkEl.textContent.trim()));
+    copyLinkBtn.addEventListener('click',()=>copyText(shareLinkLobby.textContent.trim()));
 
-    // State
+    // state
     let activeCode=null, turnState={currentTurn:null,order:[]};
 
-    // Create room
+    // create & join
     createBtn.addEventListener('click',()=>{
       Sound.click();
       const code=makeCode(); activeCode=code;
       const url=shareURL(code);
-      roomCodeEl.textContent=code; shareLinkEl.textContent=url; homeShare.classList.remove('hidden');
-      regenQR(qrHome, url);
-      socket.emit('room:create',{code,name:hostNameEl.value||'Host'});
-      stateCodeEl.textContent=code;
-      view('viewLobby');
-      shareLinkLobby.textContent=url; regenQR(qrLobby, url);
-      // ask server to broadcast a fresh snapshot just in case
+      roomCodeEl.textContent=code; shareLinkEl.textContent=url; homeShare.classList.remove('hidden'); regenQR(qrHome,url);
+      socket.emit('room:create',{code,name:hostNameEl.value||'Host'}); stateCodeEl.textContent=code; view('viewLobby'); shareLinkLobby.textContent=url; regenQR(qrLobby,url);
       setTimeout(()=> socket.emit('room:sync',{code}), 200);
     });
 
-    // Join via link hash
     const m=location.hash.match(/#room=([A-Z0-9]+)/i);
     if(m){ detectedRoomEl.textContent=m[1].toUpperCase(); joinCodeEl.value=m[1].toUpperCase(); linkHint.classList.remove('hidden'); }
     function doJoin(){ Sound.click(); const code=(joinCodeEl.value||detectedRoomEl.textContent||'').toUpperCase().trim(); if(!code) return; activeCode=code; stateCodeEl.textContent=code; socket.emit('room:join',{code,name:joinNameEl.value||'Player'}); view('viewLobby'); setTimeout(()=> socket.emit('room:sync',{code}), 200); }
     joinBtn.addEventListener('click',doJoin); joinNameEl.addEventListener('keydown',e=>{ if(e.key==='Enter') doJoin(); }); joinCodeEl.addEventListener('keydown',e=>{ if(e.key==='Enter') doJoin(); });
 
-    // Host controls
+    // host controls
     setTopicBtn.addEventListener('click',()=>{ Sound.click(); if(activeCode) socket.emit('topic:set',{code:activeCode,topic:topicSelect.value}); });
     setTimerBtn.addEventListener('click',()=>{ Sound.click(); if(activeCode) socket.emit('timer:set',{code:activeCode,seconds:timerInput.value}); });
     setVoteTimerBtn.addEventListener('click',()=>{ Sound.click(); if(activeCode) socket.emit('voteTimer:set',{code:activeCode,seconds:voteTimerInput.value}); });
@@ -311,7 +316,7 @@
     headerRevealBtn.addEventListener('click',sendReveal); revealBtn.addEventListener('click',sendReveal); panicRevealBtn.addEventListener('click',sendReveal);
     leaveBtn.addEventListener('click',()=>{ Sound.click(); socket.emit('room:leave'); activeCode=null; view('viewHome'); panicRevealBtn.style.display='none'; qrLobby.innerHTML=''; shareLinkLobby.textContent='—'; });
 
-    // Turn UI
+    // turn UI
     function renderTurnUI(){
       turnChips.innerHTML='';
       (turnState.order||[]).forEach(o=>{
@@ -325,14 +330,36 @@
     turnSend.addEventListener('click',()=>{ const w=turnInput.value.trim().slice(0,40); if(!w) return; Sound.success(); socket.emit('turn:submit',{code:activeCode,word:w}); turnInput.value=''; });
     turnInput.addEventListener('keydown',e=>{ if(e.key==='Enter') turnSend.click(); });
 
-    // Socket updates
+    // ---- voting UI ----
+    function renderVoteBars(players){
+      voteList.innerHTML='';
+      players.filter(p=>p.id!==socket.id).forEach(p=>{
+        const row=document.createElement('button');
+        row.className='vote-row w-full text-left';
+        row.onclick=()=>{ Sound.vote(); socket.emit('vote:cast',{code:activeCode,targetId:p.id}); };
+        const fill=document.createElement('div'); fill.className='vote-fill'; fill.id=`fill-${p.id}`;
+        const content=document.createElement('div'); content.className='relative p-4 flex items-center justify-between';
+        const name=document.createElement('div'); name.className='font-bold text-lg'; name.textContent=p.name;
+        const pct=document.createElement('div'); pct.id=`pct-${p.id}`; pct.className='text-sm text-slate-600'; pct.textContent='0';
+        content.appendChild(name); content.appendChild(pct); row.appendChild(fill); row.appendChild(content); voteList.appendChild(row);
+      });
+    }
+    function updateVoteBars(tally,total){
+      Object.keys(tally||{}).forEach(pid=>{
+        const count=tally[pid]||0; const percent = total? Math.round((count/total)*100):0;
+        const fill=$(`fill-${pid}`); const pct=$(`pct-${pid}`);
+        if(fill){ fill.style.width=`${percent}%`; }
+        if(pct){ pct.textContent = `${count} vote${count!==1?'s':''}`; }
+      });
+    }
+
+    // sockets updates
     socket.on('room:update',(data)=>{
       if(!activeCode || data.code!==activeCode) return;
 
       playersEl.innerHTML=''; data.players.forEach(p=>{
         const li=document.createElement('li'); li.className='px-3 py-1 rounded border text-sm';
-        const hostMark=(data.host===p.id)?' (host)':'';
-        li.textContent=p.name+hostMark; playersEl.appendChild(li);
+        const hostMark=(data.host===p.id)?' (host)':''; li.textContent=p.name+hostMark; playersEl.appendChild(li);
       });
 
       const isHost=(data.host===socket.id);
@@ -343,14 +370,19 @@
       currentTopic.textContent=data.topic||'—'; phaseBadge.textContent=data.phase||'lobby';
       timerInput.value=data.timerSec||90; voteTimerInput.value=data.voteTimerSec||25;
 
+      if(data.phase==='vote'){ renderVoteBars(data.players); jailWrap.classList.remove('hidden'); }
+      else { jailWrap.classList.add('hidden'); }
+
       if(data.phase==='lobby'||data.phase==='roles') view('viewLobby');
       if(data.phase==='discuss') view('viewCountdown');
       if(data.phase==='vote') view('viewVote');
       if(data.phase==='reveal') view('viewReveal');
     });
 
+    socket.on('vote:update',({tally,total})=>{ updateVoteBars(tally,total); try{ tallyText.textContent=JSON.stringify(tally);}catch{} });
+
     socket.on('turn:state',({currentTurn,order})=>{ turnState.currentTurn=currentTurn; turnState.order=(order||[]); renderTurnUI(); });
-    socket.on('turn:word',({name,text})=>{ showWordFly(name,text); });
+    socket.on('turn:word',({name,text})=>showWordFly(name,text));
 
     socket.on('timer:tick',({secs})=>{
       bigTimer.textContent=secs;
@@ -363,25 +395,17 @@
     socket.on('role:assign',({topic,isImposter,word})=>{
       currentTopic.textContent=topic||'—';
       roleText.textContent = isImposter ? '🎭 You are the IMPOSTER (X)' : `🔐 Your word: ${word}`;
-      roleText.className = isImposter ? 'text-3xl font-black text-rose-600' : 'text-3xl font-black text-emerald-700';
+      roleText.className = isImposter ? 'text-3xl font-black text-rose-300' : 'text-3xl font-black text-white';
       view('viewRoles'); Sound.success();
     });
 
-    function renderVoteTargets(players, meId){
-      voteTargets.innerHTML='';
-      players.filter(p=>p.id!==meId).forEach(p=>{
-        const b=document.createElement('button');
-        b.className='px-4 py-3 rounded-xl border hover:bg-slate-100 transition';
-        b.textContent=p.name;
-        b.onclick=()=>{ Sound.vote(); socket.emit('vote:cast',{code:activeCode,targetId:p.id}); };
-        voteTargets.appendChild(b);
-      });
-    }
-    socket.on('room:update',(data)=>{ if(!activeCode || data.code!==activeCode) return; if(data.phase==='vote'){ renderVoteTargets(data.players, socket.id); }});
-    socket.on('vote:update',({tally})=>{ try{ tallyText.textContent=JSON.stringify(tally);}catch{ tallyText.textContent='{}'; } });
-
-    socket.on('round:results',({executed,isHit,imposters,secret})=>{
-      if(executed){
+    socket.on('round:results',({executed,isHit,imposters,secret,jailbreak})=>{
+      jbLine.classList.add('hidden');
+      if (jailbreak) {
+        resultText.textContent = '🔓 The impostor broke out! Jailbreak success!';
+        jbLine.classList.remove('hidden'); jbLine.textContent = '🔓 JAILBREAK — the secret word was guessed!';
+        secretWordLine.classList.add('hidden');
+      } else if (executed) {
         resultText.textContent = isHit ? '✅ The impostor was caught!' : '❌ Wrong guess — the impostor survived!';
         if(!isHit){ secretWordLine.classList.remove('hidden'); secretWordLine.textContent=`Secret word: ${secret}`; }
         else { secretWordLine.classList.add('hidden'); }
@@ -389,7 +413,7 @@
         resultText.textContent = 'No majority. No one was executed.';
         secretWordLine.classList.add('hidden');
       }
-      try{ confetti({particleCount:200, spread:70, origin:{y:0.6}}); }catch{}
+      try{ confetti({particleCount:220, spread:70, origin:{y:0.6}}); }catch{}
       view('viewReveal'); Sound.reveal();
     });
 
@@ -397,6 +421,11 @@
       if(e?.reason==='not_enough_players'){ toast(`Need at least ${e.need} players to deal (you have ${e.have}).`); Sound.error(); }
       else { toast('Action failed.'); Sound.error(); }
     });
+    socket.on('guess:result',({ok})=>{ if(!ok){ toast('No jailbreak — wrong word.'); Sound.error(); } });
+
+    // jailbreak submit
+    jailBtn.addEventListener('click',()=>{ const g=jailGuess.value.trim(); if(!g) return; Sound.click(); socket.emit('imposter:guess',{code:activeCode,guess:g}); jailGuess.value=''; });
+    jailGuess.addEventListener('keydown',e=>{ if(e.key==='Enter') jailBtn.click(); });
   </script>
 </body>
 </html>
