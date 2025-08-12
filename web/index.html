@@ -9,26 +9,16 @@
     :root{ --bg1:#0ea5e9; --bg2:#9333ea; --bg3:#ef4444; }
     .aurora{ background:linear-gradient(120deg,var(--bg1),var(--bg2),var(--bg3)); background-size:200% 200%; animation:aurora 10s ease-in-out infinite; }
     @keyframes aurora{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-    .paper{ background: radial-gradient(circle at 20% 10%, rgba(255,255,255,.35), transparent 40%), radial-gradient(circle at 80% 0%, rgba(255,255,255,.25), transparent 45%), linear-gradient(135deg, rgba(255,255,255,.6), rgba(255,255,255,.2)); position:relative; overflow:hidden; }
+    .paper{ background: radial-gradient(circle at 20% 10%, rgba(255,255,255,.35), transparent 40%), radial-gradient(circle at 80% 0%, rgba(255,255,255,.25), transparent 45%), linear-gradient(135deg, rgba(255,255,255,.6), rgba(255,255,255,.2)); }
     .chip{padding:.25rem .6rem;border-radius:9999px;background:#e2e8f0;font-weight:600;}
     .btn-game{border-radius:14px;font-weight:700;padding:.9rem 1.1rem;}
     .btn-primary{background:#6366f1;color:#fff;} .btn-primary:hover{background:#5458e9;}
     .btn-ghost{border:1px solid #cbd5e1;background:#fff;}
     .vote-row{position:relative;border-radius:16px;border:1px solid #e5e7eb;background:#fff;overflow:hidden}
     .vote-fill{position:absolute;left:0;top:0;bottom:0;width:0%;background:linear-gradient(90deg,rgba(239,68,68,.10),rgba(239,68,68,.6));transition:width .2s ease;}
-    #menuDrawer{position:fixed;right:-360px;top:0;bottom:0;width:340px;background:#0f172a;color:#fff;z-index:9999;box-shadow:-6px 0 24px rgba(0,0,0,.35);transition:right .22s ease;}
-    #menuDrawer.open{right:0}
-    .menuItem{display:flex;align-items:center;gap:.6rem;padding:.8rem 1rem;border-radius:.8rem;background:rgba(255,255,255,.06);cursor:pointer}
-    .menuItem:hover{background:rgba(255,255,255,.12)}
-    #dmPanel{display:none} #dmPanel.open{display:block}
-    .dmBubble{max-width:78%; margin:.25rem 0; padding:.55rem .75rem; border-radius:.8rem}
-    .dmMe{background:#2563eb; color:#fff; margin-left:auto}
-    .dmThem{background:#e5e7eb; color:#111827; margin-right:auto}
     #panicReveal{position:fixed;bottom:22px;right:22px;z-index:9990;display:none;border:none;border-radius:50px;background:linear-gradient(180deg,#ff1a2a 0%,#c70f1c 100%);color:#fff;box-shadow:0 12px 24px rgba(199,15,28,.45)}
-    .wordChip{display:none}
-    .wordChip.show{display:inline-flex}
-    .impChip{display:none}
-    .impChip.show{display:inline-flex}
+    .wordChip{display:none} .wordChip.show{display:inline-flex}
+    .impChip{display:none} .impChip.show{display:inline-flex}
   </style>
 </head>
 <body class="bg-slate-100">
@@ -36,7 +26,6 @@
     <div class="max-w-4xl mx-auto flex items-center justify-between">
       <div class="font-black text-xl">🕵️ Imposter Game</div>
       <div class="flex items-center gap-2 text-xs">
-        <button id="menuBtn" class="px-3 py-1 rounded-lg border">☰ Menu</button>
         <button id="linkBaseBtn" class="px-3 py-1 rounded-lg border">Link Base</button>
         <button id="muteBtn" class="px-3 py-1 rounded-lg border">🔊 Sound</button>
         <div class="text-slate-500">Status: <span id="conn">connecting…</span> · <span id="sid">—</span></div>
@@ -85,7 +74,6 @@
           <div class="text-lg font-semibold">Room <span id="stateCode">—</span></div>
           <div class="flex items-center gap-2">
             <div id="phaseBadge" class="chip">lobby</div>
-            <div id="timerChip" class="hidden chip">⏳ 0s</div>
             <button id="headerRevealBtn" class="hidden text-sm px-3 py-1 rounded-lg bg-fuchsia-600 text-white">Reveal</button>
           </div>
         </div>
@@ -121,7 +109,7 @@
                   <button id="startVoteBtn" class="btn-game bg-amber-600 text-white">Start Voting</button>
                   <button id="revealBtn" class="btn-game bg-fuchsia-600 text-white">Reveal</button>
                 </div>
-                <div class="text-[11px] text-slate-500">Min players required: <b>3</b>. Auto-reveal when everyone votes or the vote timer expires.</div>
+                <div class="text-[11px] text-slate-500">Min players required: <b>3</b>. Auto-deal happens if you forget.</div>
               </div>
             </div>
           </div>
@@ -131,6 +119,7 @@
             <div class="text-[11px] text-slate-500">Scan or copy link</div>
             <div id="qrLobby" class="inline-block bg-white p-2 rounded-xl shadow mt-2"></div>
             <div class="text-[11px] text-slate-500 mt-2 break-all" id="shareLinkLobby">—</div>
+            <!-- COPY BUTTON (back) -->
             <button id="copyLinkBtn" class="btn-game bg-emerald-600 text-white mt-3 w-full">Copy Game Link</button>
           </aside>
         </div>
@@ -148,12 +137,12 @@
 
     <!-- DISCUSSION -->
     <section id="viewCountdown" class="hidden">
-      <div class="aurora rounded-2xl shadow p-10 text-center text-white relative overflow-hidden">
+      <div class="aurora rounded-2xl shadow p-10 text-center text-white">
         <div class="text-lg opacity-90">Discussion Time</div>
-        <div id="bigTimer" class="text-7xl md:text-8xl font-black tracking-tight mt-2 drop-shadow">90</div>
+        <div id="bigTimer" class="text-7xl md:text-8xl font-black tracking-tight mt-2">90</div>
         <div class="opacity-90 mt-2">Talk it out. Imposter—blend in.</div>
 
-        <!-- Show YOUR role/word right here -->
+        <!-- Your role right here -->
         <div id="myWordChip" class="wordChip mt-3 inline-flex items-center gap-2 bg-white/15 backdrop-blur px-3 py-1 rounded-full">
           <span class="text-xs opacity-80">Your word:</span>
           <span id="myWordVal" class="font-bold"></span>
@@ -162,7 +151,7 @@
           <span>🎭 YOU ARE THE IMPOSTER</span>
         </div>
 
-        <div id="turnUI" class="mt-8 bg-white/15 backdrop-blur rounded-xl p-4">
+        <div class="mt-8 bg-white/15 backdrop-blur rounded-xl p-4">
           <div class="text-sm mb-2">Turn order</div>
           <div id="turnChips" class="flex flex-wrap gap-2 justify-center"></div>
           <div id="turnInputWrap" class="mt-4 hidden">
@@ -184,7 +173,7 @@
         </div>
         <div id="voteList" class="mt-4 space-y-3"></div>
 
-        <!-- Jailbreak: now shown ONLY to impostors -->
+        <!-- Jailbreak (shown only to impostors) -->
         <div id="jailbreakWrap" class="hidden mt-6 p-4 rounded-xl bg-rose-50 border border-rose-200">
           <div class="font-bold text-rose-700 mb-1">Imposter Jailbreak</div>
           <div class="text-sm text-rose-700/80 mb-2">Guess the secret word to break out instantly!</div>
@@ -211,90 +200,47 @@
     </section>
   </main>
 
-  <button id="panicReveal" title="Reveal now (host)">
-    <span class="px-5 py-3 font-bold">🚨 Reveal Now</span>
-  </button>
-
-  <!-- Menu Drawer (unchanged UI) -->
-  <aside id="menuDrawer" aria-hidden="true">
-    <div class="p-4 text-xs opacity-80">Menu</div>
-    <div class="p-4 space-y-2">
-      <div id="menuPlayers" class="menuItem">👥 View Players</div>
-      <div id="menuChat" class="menuItem">💬 Private Chat</div>
-      <div id="menuEnd" class="menuItem">🛑 End Game (host)</div>
-      <div id="menuLeave" class="menuItem">🚪 Leave Game</div>
-      <div id="menuHome" class="menuItem">🏠 Return to Main Menu</div>
-    </div>
-    <hr class="border-white/10 my-3">
-    <div id="dmPanel" class="p-4">
-      <div class="font-semibold mb-2">Private Chat</div>
-      <select id="dmTarget" class="w-full text-black rounded-lg px-2 py-1 mb-2"></select>
-      <div id="dmLog" class="h-48 overflow-y-auto bg-white/5 rounded-lg p-2"></div>
-      <div class="mt-2 flex gap-2">
-        <input id="dmInput" class="flex-1 rounded-lg px-2 py-1 text-black" placeholder="Write a private message">
-        <button id="dmSend" class="px-3 py-1 rounded-lg bg-indigo-500">Send</button>
-      </div>
-    </div>
-  </aside>
+  <button id="panicReveal"><span class="px-5 py-3 font-bold">🚨 Reveal Now</span></button>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    // Sounds
-    const Sound=(()=>{let ctx,muted=localStorage.getItem('imposter.muted')==='1';
-      function ensure(){ if(!ctx) ctx=new (window.AudioContext||window.webkitAudioContext)(); if(ctx.state==='suspended') ctx.resume(); return ctx; }
-      function tone(f=440,d=.07,type='square',g=.05){ if(muted) return; const c=ensure(),o=c.createOscillator(),ga=c.createGain(); o.type=type;o.frequency.value=f;ga.gain.value=g;o.connect(ga).connect(c.destination);o.start();o.stop(c.currentTime+d); }
-      function sweep(f1,f2,d=.5,type='sawtooth',g=.05){ if(muted) return; const c=ensure(),o=c.createOscillator(),ga=c.createGain(); o.type=type;o.frequency.setValueAtTime(f1,c.currentTime);o.frequency.exponentialRampToValueAtTime(f2,c.currentTime+d);ga.gain.value=g;o.connect(ga).connect(c.destination);o.start();o.stop(c.currentTime+d); }
-      return{ click(){tone(320,.05)}, success(){tone(660,.06,'triangle');setTimeout(()=>tone(880,.07,'triangle'),60)}, error(){sweep(140,120,.18)}, reveal(){sweep(500,140,.5);setTimeout(()=>sweep(300,900,.5,'triangle'),380)}, tick(){tone(260,.03)}, get muted(){return muted}, setMuted(v){muted=!!v;localStorage.setItem('imposter.muted',muted?'1':'0');} };
-    })();
-
+    // ---- helpers & sounds (minimal) ----
     const $=id=>document.getElementById(id);
-    function view(id){['viewHome','viewLobby','viewRoles','viewCountdown','viewVote','viewReveal'].forEach(v=>$(v).classList.add('hidden')); $(id).classList.remove('hidden');}
-
     const socket=io();
-    const conn=$('conn'), sid=$('sid');
-    socket.on('connect',()=>{conn.textContent='connected ✅'; conn.className='text-emerald-700'; sid.textContent=socket.id;});
-    socket.on('disconnect',r=>{conn.textContent=`offline (${r})`; conn.className='text-rose-700'; sid.textContent='—';});
-
     const RENDER_DEFAULT='https://imposter-game-b1s8.onrender.com';
     let linkBase=localStorage.getItem('imposter.linkBase')||(location.hostname==='localhost'?RENDER_DEFAULT:location.origin);
     const shareURL=code=>`${linkBase}${location.pathname}#room=${code}`;
+    function regenQR(el,url){ el.innerHTML=''; new QRCode(el,{text:url,width:140,height:140}); }
+    function makeCode(len=6){const c='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<len;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
+    function view(id){['viewHome','viewLobby','viewRoles','viewCountdown','viewVote','viewReveal'].forEach(v=>$(v).classList.add('hidden')); $(id).classList.remove('hidden');}
 
     // refs
-    const hostName=$('hostName'), createBtn=$('createBtn'), homeShare=$('homeShare'), roomCode=$('roomCode'),
-          shareLink=$('shareLink'), qrHome=$('qrHome'), homeCopy=$('homeCopyBtn');
-    const joinName=$('joinName'), joinCode=$('joinCode'), joinBtn=$('joinBtn'), linkHint=$('linkHint'), detectedRoom=$('detectedRoom');
-    const stateCode=$('stateCode'), players=$('players'), hostBadge=$('hostBadge'), phaseBadge=$('phaseBadge');
-    const hostControls=$('hostControls'), topicSel=$('topicSelect'), setTopic=$('setTopicBtn'), currentTopic=$('currentTopic');
-    const timerIn=$('timerInput'), setTimer=$('setTimerBtn'), voteTimerIn=$('voteTimerInput'), setVoteTimer=$('setVoteTimerBtn');
+    const conn=$('conn'), sid=$('sid');
+    const hostName=$('hostName'), createBtn=$('createBtn'), homeShare=$('homeShare'), roomCode=$('roomCode'), shareLink=$('shareLink'), homeCopy=$('homeCopyBtn'), qrHome=$('qrHome');
+    const joinName=$('joinName'), joinCode=$('joinCode'), joinBtn=$('joinBtn'), detectedRoom=$('detectedRoom'), linkHint=$('linkHint');
+    const stateCode=$('stateCode'), players=$('players'), hostBadge=$('hostBadge'), phaseBadge=$('phaseBadge'), currentTopic=$('currentTopic');
+    const topicSel=$('topicSelect'), setTopic=$('setTopicBtn'), timerIn=$('timerInput'), setTimer=$('setTimerBtn'), voteTimerIn=$('voteTimerInput'), setVoteTimer=$('setVoteTimerBtn');
     const dealBtn=$('dealBtn'), discussBtn=$('discussBtn'), startVoteBtn=$('startVoteBtn'), revealBtn=$('revealBtn'), headerRevealBtn=$('headerRevealBtn');
-    const qrLobby=$('qrLobby'), shareLinkLobby=$('shareLinkLobby'), copyLinkBtn=$('copyLinkBtn');
-    const bigTimer=$('bigTimer'), voteTimerChip=$('voteTimerChip');
-    const turnChips=$('turnChips'), turnInputWrap=$('turnInputWrap'), turnInput=$('turnInput'), turnSend=$('turnSend'), turnWait=$('turnWait'), turnName=$('turnName');
-    const myWordChip=$('myWordChip'), myWordVal=$('myWordVal'), impChip=$('impChip');
-    const voteList=$('voteList'), resultText=$('resultText'), secretWordLine=$('secretWordLine'), jbLine=$('jbLine');
-    const playAgain=$('playAgainBtn'), exitBtn=$('exitBtn');
-    const jailbreakWrap=$('jailbreakWrap'), jailGuess=$('jailGuess'), jailBtn=$('jailBtn');
-    const muteBtn=$('muteBtn'), linkBaseBtn=$('linkBaseBtn'), menuBtn=$('menuBtn'), menuDrawer=$('menuDrawer');
-    const menuPlayers=$('menuPlayers'), menuChat=$('menuChat'), menuEnd=$('menuEnd'), menuLeave=$('menuLeave'), menuHome=$('menuHome');
-    const dmPanel=$('dmPanel'), dmTarget=$('dmTarget'), dmLog=$('dmLog'), dmInput=$('dmInput'), dmSend=$('dmSend');
-    const panicReveal=$('panicReveal');
+    const hostControls=$('hostControls'), qrLobby=$('qrLobby'), shareLinkLobby=$('shareLinkLobby'), copyLinkBtn=$('copyLinkBtn');
+    const bigTimer=$('bigTimer'), turnChips=$('turnChips'), turnInputWrap=$('turnInputWrap'), turnInput=$('turnInput'), turnSend=$('turnSend'), turnWait=$('turnWait'), turnName=$('turnName');
+    const myWordChip=$('myWordChip'), myWordVal=$('myWordVal'), impChip=$('impChip'), jailbreakWrap=$('jailbreakWrap'), jailGuess=$('jailGuess'), jailBtn=$('jailBtn');
+    const resultText=$('resultText'), secretWordLine=$('secretWordLine'), jbLine=$('jbLine'), playAgainBtn=$('playAgainBtn'), exitBtn=$('exitBtn');
+    const muteBtn=$('muteBtn'), linkBaseBtn=$('linkBaseBtn'), panicReveal=$('panicReveal');
 
-    // state
-    let activeCode=null, lastState=null, myWord=null, amImposter=false;
+    let activeCode=null, lastState=null, amImposter=false;
 
-    // mute/link base
-    function renderMute(){ muteBtn.textContent = Sound.muted ? '🔇 Muted' : '🔊 Sound'; }
-    renderMute();
-    muteBtn.onclick=()=>{ Sound.setMuted(!Sound.muted); renderMute(); };
-    linkBaseBtn.onclick=()=>{ const v=prompt('Base URL for share links:', linkBase); if(!v) return; try{ const u=new URL(v); linkBase=u.origin; localStorage.setItem('imposter.linkBase',linkBase); if(activeCode){ const url=shareURL(activeCode); shareLink.textContent=url; shareLinkLobby.textContent=url; new QRCode(qrHome,{text:url,width:140,height:140}); } }catch{ alert('Invalid URL'); } };
+    // connection
+    socket.on('connect',()=>{conn.textContent='connected ✅'; conn.className='text-emerald-700'; sid.textContent=socket.id;});
+    socket.on('disconnect',r=>{conn.textContent=`offline (${r})`; conn.className='text-rose-700'; sid.textContent='—';});
+
+    // link base & copy buttons
+    linkBaseBtn.onclick=()=>{ const v=prompt('Base URL for share links:', linkBase); if(!v) return; try{ const u=new URL(v); linkBase=u.origin; localStorage.setItem('imposter.linkBase',linkBase); if(activeCode){ const url=shareURL(activeCode); shareLink.textContent=url; shareLinkLobby.textContent=url; regenQR(qrHome,url); regenQR(qrLobby,url);} }catch{ alert('Invalid URL'); } };
+    homeCopy.onclick=()=>navigator.clipboard.writeText(shareLink.textContent.trim());
+    copyLinkBtn.onclick=()=>navigator.clipboard.writeText(shareLinkLobby.textContent.trim());
 
     // create/join
-    function regenQR(el,url){ el.innerHTML=''; new QRCode(el,{text:url,width:140,height:140}); }
     createBtn.onclick=()=>{ const code=makeCode(); activeCode=code; const url=shareURL(code); roomCode.textContent=code; shareLink.textContent=url; homeShare.classList.remove('hidden'); regenQR(qrHome,url); socket.emit('room:create',{code,name:hostName.value||'Host'}); stateCode.textContent=code; view('viewLobby'); shareLinkLobby.textContent=url; regenQR(qrLobby,url); setTimeout(()=>socket.emit('room:sync',{code}),200); };
-    homeCopy.onclick=()=>navigator.clipboard.writeText(shareURL(activeCode));
-    copyLinkBtn.onclick=()=>navigator.clipboard.writeText(shareURL(activeCode));
     const m=location.hash.match(/#room=([A-Z0-9]+)/i); if(m){ detectedRoom.textContent=m[1].toUpperCase(); joinCode.value=m[1].toUpperCase(); linkHint.classList.remove('hidden'); }
     function doJoin(){ const code=(joinCode.value||detectedRoom.textContent||'').toUpperCase().trim(); if(!code) return; activeCode=code; stateCode.textContent=code; socket.emit('room:join',{code,name:joinName.value||'Player'}); view('viewLobby'); setTimeout(()=>socket.emit('room:sync',{code}),200); }
     joinBtn.onclick=doJoin; joinCode.onkeydown=e=>{ if(e.key==='Enter') doJoin(); }; joinName.onkeydown=e=>{ if(e.key==='Enter') doJoin(); };
@@ -304,72 +250,40 @@
     setTimer.onclick=()=>socket.emit('timer:set',{code:activeCode,seconds:timerIn.value});
     setVoteTimer.onclick=()=>socket.emit('voteTimer:set',{code:activeCode,seconds:voteTimerIn.value});
     dealBtn.onclick=()=>socket.emit('round:deal',{code:activeCode});
-    discussBtn.onclick=()=>{ socket.emit('round:discuss',{code:activeCode}); view('viewCountdown'); /* ask server to remind our role/word */ socket.emit('role:remind',{code:activeCode}); };
+    discussBtn.onclick=()=>{
+      if(!lastState || lastState.players.length<3){ alert('Need at least 3 players.'); return; }
+      // auto-deal if host forgot
+      if (!lastState || lastState.phase!=='roles'){ socket.emit('round:deal',{code:activeCode}); setTimeout(()=>socket.emit('round:discuss',{code:activeCode}),200); }
+      else { socket.emit('round:discuss',{code:activeCode}); }
+      view('viewCountdown');
+      socket.emit('role:remind',{code:activeCode}); // make sure we see our word/role
+    };
     startVoteBtn.onclick=()=>socket.emit('round:start-vote',{code:activeCode});
-    const sendReveal=()=>socket.emit('round:reveal',{code:activeCode});
-    headerRevealBtn.onclick=sendReveal; panicReveal.onclick=sendReveal; revealBtn.onclick=sendReveal;
+    revealBtn.onclick=()=>socket.emit('round:reveal',{code:activeCode});
+    headerRevealBtn.onclick=()=>socket.emit('round:reveal',{code:activeCode});
+    panicReveal.onclick=()=>socket.emit('round:reveal',{code:activeCode});
 
-    // menu & DM (same behavior as before)
-    menuBtn.onclick=()=>menuDrawer.classList.toggle('open');
-    menuPlayers.onclick=()=>{ if(!lastState) return; alert(lastState.players.map(p=>`${p.name}${p.id===lastState.host?' (host)':''}`).join('\n')); };
-    menuChat.onclick=()=>dmPanel.classList.toggle('open');
-    menuEnd.onclick=()=>{ if(!lastState || lastState.host!==socket.id) return alert('Only host'); if(confirm('End game for everyone?')) socket.emit('game:end',{code:activeCode}); };
-    function leave(){ socket.emit('room:leave'); activeCode=null; view('viewHome'); menuDrawer.classList.remove('open'); }
-    menuLeave.onclick=leave; menuHome.onclick=leave;
-    const chats=new Map();
-    function renderTargets(s){ dmTarget.innerHTML=''; (s?.players||[]).filter(p=>p.id!==socket.id).forEach(p=>{ const o=document.createElement('option'); o.value=p.id; o.textContent=p.name; dmTarget.appendChild(o); }); }
-    function renderDM(){ const id=dmTarget.value, log=chats.get(id)||[]; dmLog.innerHTML=''; log.slice(-100).forEach(m=>{ const b=document.createElement('div'); b.className='dmBubble '+(m.from===socket.id?'dmMe':'dmThem'); b.textContent=m.text; dmLog.appendChild(b); }); dmLog.scrollTop=dmLog.scrollHeight; }
-    dmTarget.onchange=renderDM; dmSend.onclick=()=>{ const id=dmTarget.value, text=dmInput.value.trim(); if(!id||!text) return; socket.emit('dm:send',{code:activeCode,to:id,text}); dmInput.value=''; };
-    socket.on('dm:msg', m=>{ const key=m.from===socket.id? m.to : m.from; (chats.get(key)||chats.set(key,[]).get(key)).push(m); if(dmTarget.value===key) renderDM(); });
-
-    // vote UI
-    function renderVoteBars(players){
-      voteList.innerHTML='';
-      players.filter(p=>p.id!==socket.id).forEach(p=>{
-        const row=document.createElement('button'); row.className='vote-row w-full text-left'; row.onclick=()=> socket.emit('vote:cast',{code:activeCode,targetId:p.id});
-        const fill=document.createElement('div'); fill.className='vote-fill'; fill.id=`fill-${p.id}`;
-        const inner=document.createElement('div'); inner.className='relative p-4 flex items-center justify-between';
-        const name=document.createElement('div'); name.className='font-bold text-lg'; name.textContent=p.name;
-        const count=document.createElement('div'); count.id=`pct-${p.id}`; count.className='text-sm text-slate-600'; count.textContent='0';
-        inner.appendChild(name); inner.appendChild(count); row.appendChild(fill); row.appendChild(inner); voteList.appendChild(row);
-      });
-    }
-    function updateVoteBars(tally,total){
-      (lastState?.players||[]).forEach(p=>{
-        const count=(tally||{})[p.id]||0; const percent = total? Math.round((count/total)*100):0;
-        const fill=$(`fill-${p.id}`), pct=$(`pct-${p.id}`);
-        if(fill) fill.style.width=`${percent}%`;
-        if(pct) pct.textContent = `${count} vote${count!==1?'s':''}`;
-      });
-    }
-
-    // socket events
+    // state updates
     socket.on('room:update',(data)=>{
       if(!activeCode || data.code!==activeCode) return; lastState=data;
 
       players.innerHTML=''; data.players.forEach(p=>{ const li=document.createElement('li'); li.className='px-3 py-1 rounded border text-sm'; li.textContent=p.name+(data.host===p.id?' (host)':''); players.appendChild(li); });
-      renderTargets(data);
-
       const isHost=(data.host===socket.id);
       const url=shareURL(activeCode);
       if(isHost){ hostBadge.classList.remove('hidden'); hostControls.classList.remove('hidden'); headerRevealBtn.classList.remove('hidden'); panicReveal.style.display='block'; shareLinkLobby.textContent=url; regenQR(qrLobby,url); }
-      else{ hostBadge.classList.add('hidden'); hostControls.classList.add('hidden'); headerRevealBtn.classList.add('hidden'); panicReveal.style.display='none'; shareLinkLobby.textContent=url; }
+      else { hostBadge.classList.add('hidden'); hostControls.classList.add('hidden'); headerRevealBtn.classList.add('hidden'); panicReveal.style.display='none'; shareLinkLobby.textContent=url; }
+      currentTopic.textContent=data.topic||'—';
 
-      currentTopic.textContent=data.topic||'—'; phaseBadge.textContent=data.phase||'lobby';
-      timerIn.value=data.timerSec||90; voteTimerIn.value=data.voteTimerSec||25;
-
-      // Show jailbreak only for impostor
+      // show jailbreak only for impostor
       jailbreakWrap.style.display = (data.phase==='vote' && amImposter) ? 'block' : 'none';
 
-      if(data.phase==='vote') renderVoteBars(data.players);
-      if(data.phase==='discuss'){ view('viewCountdown'); socket.emit('role:remind',{code:activeCode}); } // remind role on entry
       if(data.phase==='lobby'||data.phase==='roles') view('viewLobby');
+      if(data.phase==='discuss'){ view('viewCountdown'); socket.emit('role:remind',{code:activeCode}); }
       if(data.phase==='vote') view('viewVote');
       if(data.phase==='reveal') view('viewReveal');
-      if(data.phase==='ended'){ view('viewReveal'); resultText.textContent='🛑 Game ended by host'; secretWordLine.classList.add('hidden'); jbLine.classList.add('hidden'); }
     });
 
-    socket.on('timer:tick',({secs})=>{ bigTimer.textContent=secs; voteTimerChip.classList.remove('hidden'); voteTimerChip.textContent=`⏳ ${secs}s`; if(secs%5===0) Sound.tick(); });
+    socket.on('timer:tick',({secs})=>{ bigTimer.textContent=secs; });
 
     socket.on('turn:state',({currentTurn,order})=>{
       turnChips.innerHTML='';
@@ -386,35 +300,11 @@
       turnName.textContent=who;
     });
 
-    // Always show role/word on both role screen AND when reminded
-    socket.on('role:assign',({topic,isImposter,word})=>{
-      currentTopic.textContent=topic||'—';
+    // Always remind of role; update discussion chips too
+    socket.on('role:assign',({isImposter,word})=>{
       amImposter=!!isImposter;
-      myWord = isImposter ? null : word;
-
-      // Update chips used on the discussion screen
       if(amImposter){ impChip.classList.add('show'); myWordChip.classList.remove('show'); }
-      else { myWordVal.textContent=word; myWordChip.classList.add('show'); impChip.classList.remove('show'); }
-
-      // If we're currently in roles view, show the big banner too
-      if(!document.getElementById('viewRoles').classList.contains('hidden')){
-        const roleText=document.getElementById('roleText');
-        roleText.textContent = amImposter ? '🎭 You are the IMPOSTER (X)' : `🔐 Your word: ${word}`;
-        roleText.className = amImposter ? 'text-3xl font-black text-rose-300' : 'text-3xl font-black text-white';
-      }
-    });
-
-    socket.on('turn:word',({name,text})=>{
-      const d=document.createElement('div'); d.style.position='fixed'; d.style.left='-20%'; d.style.top='50%'; d.style.transform='translateY(-50%)'; d.style.padding='.4em .7em'; d.style.fontWeight='900'; d.style.fontSize='clamp(28px,6vw,60px)'; d.style.borderRadius='.7em'; d.style.color='#fff'; d.style.background='linear-gradient(135deg,rgba(99,102,241,.95),rgba(236,72,153,.95))'; d.style.zIndex=9998; d.style.whiteSpace='nowrap'; d.textContent=`${name}: ${text}`; document.body.appendChild(d); d.animate([{transform:'translate(-20%,-50%) scale(.9)',opacity:0},{transform:'translate(120vw,-50%) scale(1)',opacity:1}],{duration:2000,easing:'ease-out'}).onfinish=()=>d.remove();
-    });
-
-    socket.on('vote:update',({tally,total})=>{
-      (lastState?.players||[]).forEach(p=>{
-        const count=(tally||{})[p.id]||0; const percent=total?Math.round((count/total)*100):0;
-        const fill=document.getElementById(`fill-${p.id}`), pct=document.getElementById(`pct-${p.id}`);
-        if(fill) fill.style.width=`${percent}%`;
-        if(pct) pct.textContent=`${count} vote${count!==1?'s':''}`;
-      });
+      else { myWordVal.textContent=word || ''; myWordChip.classList.add('show'); impChip.classList.remove('show'); }
     });
 
     socket.on('round:results',({executed,isHit,secret,jailbreak})=>{
@@ -422,19 +312,18 @@
       if(jailbreak){ resultText.textContent='🔓 The impostor broke out!'; jbLine.classList.remove('hidden'); secretWordLine.classList.add('hidden'); }
       else if(executed){ resultText.textContent = isHit ? '✅ The impostor was caught!' : '❌ Wrong guess — the impostor survived!'; if(!isHit){ secretWordLine.classList.remove('hidden'); secretWordLine.textContent=`Secret word: ${secret}`; } else secretWordLine.classList.add('hidden'); }
       else { resultText.textContent='No majority. No one was executed.'; secretWordLine.classList.add('hidden'); }
-      try{ confetti({particleCount:220, spread:70, origin:{y:0.6}}); }catch{}
     });
-
-    socket.on('guess:result',({ok})=>{ if(!ok) alert('No jailbreak — wrong word.'); });
 
     // actions
     turnSend.onclick=()=>{ const w=turnInput.value.trim().slice(0,40); if(!w) return; socket.emit('turn:submit',{code:activeCode,word:w}); turnInput.value=''; };
     turnInput.onkeydown=e=>{ if(e.key==='Enter') turnSend.onclick(); };
     jailBtn.onclick=()=>{ const g=jailGuess.value.trim(); if(!g) return; socket.emit('imposter:guess',{code:activeCode,guess:g}); jailGuess.value=''; };
-    playAgain.onclick=()=>{ if(!lastState || lastState.host!==socket.id) return alert('Only host'); socket.emit('game:reset',{code:activeCode}); };
+    playAgainBtn.onclick=()=>socket.emit('game:reset',{code:activeCode});
     exitBtn.onclick=()=>{ socket.emit('room:leave'); activeCode=null; view('viewHome'); };
 
-    function makeCode(len=6){const c='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<len;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
+    // initial hash join
+    const h=location.hash.match(/#room=([A-Z0-9]+)/i);
+    if(h){ detectedRoom.textContent=h[1].toUpperCase(); joinCode.value=h[1].toUpperCase(); linkHint.classList.remove('hidden'); }
   </script>
 </body>
 </html>

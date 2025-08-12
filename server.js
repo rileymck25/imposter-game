@@ -110,7 +110,6 @@ io.on('connection', (socket) => {
   });
   socket.on('room:sync', ({ code }) => emitUpdate(code));
 
-  // NEW: remind a player of their role/word on demand
   socket.on('role:remind', ({ code }) => {
     const r=rooms.get(code); if(!r) return;
     const p=r.players.get(socket.id); if(!p) return;
@@ -149,6 +148,26 @@ io.on('connection', (socket) => {
 
   socket.on('round:discuss', ({ code }) => {
     const room=rooms.get(code); if(!room||room.host!==socket.id) return;
+
+    // NEW: enforce min players and auto-deal roles if needed
+    if (room.players.size < 3) { io.to(socket.id).emit('round:error',{reason:'not_enough_players',need:3,have:room.players.size}); return; }
+    if (!room.secretWord) {
+      // auto-deal then start
+      const ids=Array.from(room.players.keys());
+      const list = WORD_LISTS[room.topic||'classic'] || WORD_LISTS.classic;
+      room.secretWord = pick(list);
+      const imposterId = ids[Math.floor(Math.random()*ids.length)];
+      for (const [id,p] of room.players){
+        const isImp=id===imposterId;
+        p.isImposter=isImp; p.word=isImp?null:room.secretWord; p.voteFor=null; p.guessed=false;
+        io.to(id).emit('role:assign',{topic:room.topic||'classic', isImposter:isImp, word:isImp?null:room.secretWord});
+      }
+      room.order=Array.from(room.players.keys());
+      room.roundNumber=(room.roundNumber||0)+1;
+      room.startIndex=(room.roundNumber-1)%room.order.length;
+      room.currentTurn=null; room.turnsRemaining=0;
+    }
+
     room.phase='discuss';
     if(!room.order||room.order.length===0) room.order=Array.from(room.players.keys());
     room.turnsRemaining=room.order.length;
@@ -202,7 +221,6 @@ io.on('connection', (socket) => {
     if(ok) doReveal(code,{success:true,by:socket.id}); else io.to(socket.id).emit('guess:result',{ok:false});
   });
 
-  // End/Reset
   socket.on('game:end', ({ code }) => {
     const r=rooms.get(code); if(!r||r.host!==socket.id) return;
     stopTimer(code); r.phase='ended'; emitUpdate(code); io.to(code).emit('game:ended');
@@ -215,7 +233,6 @@ io.on('connection', (socket) => {
     emitUpdate(code);
   });
 
-  // DM
   socket.on('dm:send', ({ code, to, text }) => {
     const r=rooms.get(code); if(!r) return;
     const fromP=r.players.get(socket.id); if(!fromP || !r.players.has(to)) return;
