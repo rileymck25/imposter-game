@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Imposter Game</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss/dist/tailwind.min.css">
+  <style>
+    :root{ --bg1:#0ea5e9; --bg2:#9333ea; --bg3:#ef4444; }
+    .aurora{ background:linear-gradient(120deg,var(--bg1),var(--bg2),var(--bg3)); background-size:200% 200%; animation:auroraShift 8s ease-in-out infinite; }
+    @keyframes auroraShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    .chip{padding:.25rem .6rem;border-radius:9999px;background:#e2e8f0;font-weight:600;}
+    .btn-game{border-radius:14px;font-weight:700;padding:.9rem 1.1rem;}
+    .btn-primary{background:#6366f1;color:#fff;} .btn-primary:hover{background:#5458e9;}
+    .btn-ghost{border:1px solid #cbd5e1;}
+    .title{font-weight:900;letter-spacing:.3px}
+    .fade{animation:fade .35s ease both;} @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+    #panicReveal{position:fixed;bottom:22px;right:22px;z-index:9999;display:none;border:none;cursor:pointer;padding:0;border-radius:50px;background:linear-gradient(180deg,#ff1a2a 0%,#c70f1c 100%);color:#fff;box-shadow:0 12px 24px rgba(199,15,28,.45),inset 0 3px 0 rgba(255,255,255,.25);animation:sus-wiggle 2.2s ease-in-out infinite;}
+    #panicReveal .btn-inner{position:relative;display:flex;align-items:center;gap:14px;padding:16px 26px 16px 18px;border-radius:50px;overflow:hidden;}
+    #panicReveal .btn-inner::before{content:"";position:absolute;inset:0;background:radial-gradient(200px 80px at 50% -40px,rgba(255,255,255,.55),transparent 65%)}
+    #panicReveal .visor{width:54px;height:34px;border-radius:22px;background:linear-gradient(180deg,#c6f0ff,#9ad8ff 45%,#6fbde8);box-shadow:inset 0 2px 0 rgba(255,255,255,.7),inset 0 -4px 10px rgba(0,0,0,.25);border:2px solid rgba(0,0,0,.15);position:relative;}
+    #panicReveal .visor::after{content:"";position:absolute;left:8px;top:6px;width:14px;height:8px;border-radius:10px;background:rgba(255,255,255,.8)}
+    #panicReveal .label{font-weight:900;letter-spacing:.5px;font-size:1.1rem;text-shadow:0 1px 0 rgba(0,0,0,.25);display:flex;flex-direction:column;line-height:1.1;}
+    #panicReveal .label .small{font-size:.70rem;opacity:.85;font-weight:700;letter-spacing:.2px;}
+    #panicReveal:hover{transform:translateY(-2px);box-shadow:0 14px 26px rgba(199,15,28,.5)}
+    @keyframes sus-wiggle{0%,100%{transform:rotate(0) translateY(0)}12%{transform:rotate(-2.2deg) translateY(-1px)}24%{transform:rotate(2deg)}36%{transform:rotate(-1.5deg)}48%{transform:rotate(1.5deg)}60%{transform:rotate(0)}}
+
+    .copy-btn{position:relative;border:none;padding:.8rem 1rem;border-radius:14px;color:#fff;font-weight:800;letter-spacing:.3px;background:linear-gradient(135deg,#22c55e,#16a34a);box-shadow:0 8px 18px rgba(22,163,74,.35);transition:transform .12s ease,box-shadow .12s ease;overflow:hidden;}
+    .copy-btn:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(22,163,74,.45)}
+    .copy-btn:active{transform:translateY(0);box-shadow:0 6px 14px rgba(22,163,74,.35)}
+    .copy-btn::after{content:"";position:absolute;inset:0;background:radial-gradient(160px 40px at 50% -20px,rgba(255,255,255,.45),transparent 60%);pointer-events:none}
+
+    #globalToast{position:fixed;left:50%;transform:translateX(-50%);top:18px;z-index:99999;background:#0f172a;color:#fff;padding:.6rem .9rem;border-radius:12px;font-size:.9rem;box-shadow:0 10px 20px rgba(0,0,0,.25);display:none}
+    #muteBtn{border:1px solid #cbd5e1}
+    #muteBtn.active{background:#0f172a;color:#fff;border-color:#0f172a}
+
+    .word-fly{position:fixed;left:-20%;top:50%;transform:translateY(-50%);font-weight:900;font-size:clamp(28px,6vw,64px);color:#fff;text-shadow:0 4px 16px rgba(0,0,0,.35);padding:.2em .5em;border-radius:.6em;background:linear-gradient(135deg,rgba(99,102,241,.95),rgba(236,72,153,.95));z-index:9998;white-space:nowrap;animation:flyAcross 2.1s ease-out forwards;}
+    .word-fly small{font-size:.45em;font-weight:700;opacity:.9;margin-right:.6em;}
+    @keyframes flyAcross{0%{transform:translate(-20%,-50%) scale(.9) rotate(-2deg);opacity:0}10%{opacity:1}60%{transform:translate(40vw,-50%) scale(1.02) rotate(0)}100%{transform:translate(120vw,-50%) scale(1) rotate(2deg);opacity:0}}
+  </style>
+</head>
+<body class="bg-slate-100">
+  <div id="globalToast"></div>
+
+  <header class="px-5 py-3 bg-white shadow-sm sticky top-0 z-40">
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+      <div class="title text-xl">🕵️ Imposter Game</div>
+      <div class="flex items-center gap-2">
+        <button id="linkBaseBtn" class="text-xs px-3 py-1 rounded-lg border">Link Base</button>
+        <button id="muteBtn" class="text-xs px-3 py-1 rounded-lg">🔊 Sound</button>
+        <div class="text-xs text-slate-500">Status: <span id="conn">connecting…</span> · <span id="sid">—</span></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto p-5">
+    <!-- HOME -->
+    <section id="viewHome" class="fade space-y-6">
+      <div class="bg-white rounded-2xl shadow p-6">
+        <h2 class="title text-2xl mb-2">Start a game</h2>
+        <div class="flex gap-2">
+          <input id="hostName" class="border rounded-lg px-3 py-2 flex-1" placeholder="Your name (host)">
+          <button id="createBtn" class="btn-game btn-primary">Create Room</button>
+        </div>
+        <div id="homeShare" class="hidden mt-5 grid md:grid-cols-[1fr_auto] gap-4 items-start">
+          <div>
+            <div class="text-sm text-slate-600">Room code:</div>
+            <div id="roomCode" class="text-4xl font-black tracking-widest mt-1"></div>
+            <div class="mt-2 text-xs text-slate-500">Share this link:</div>
+            <div id="shareLink" class="text-xs break-all"></div>
+            <button id="homeCopyBtn" class="copy-btn mt-3">Copy Game Link</button>
+          </div>
+          <div><div id="qrHome" class="inline-block bg-white p-2 rounded-xl shadow"></div></div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow p-6">
+        <h2 class="title text-2xl mb-2">Join a game</h2>
+        <div class="grid sm:grid-cols-[1fr_auto] gap-2">
+          <input id="joinCode" class="border rounded-lg px-3 py-2" placeholder="Enter room code (e.g., ABC123)">
+          <div class="flex gap-2">
+            <input id="joinName" class="border rounded-lg px-3 py-2" placeholder="Your name">
+            <button id="joinBtn" class="btn-game btn-ghost">Join</button>
+          </div>
+        </div>
+        <div id="linkHint" class="hidden text-xs text-slate-500 mt-2">Detected code from link: <span id="detectedRoom" class="font-semibold"></span></div>
+      </div>
+    </section>
+
+    <!-- LOBBY -->
+    <section id="viewLobby" class="hidden fade space-y-4">
+      <div class="bg-white rounded-2xl shadow p-6">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <div class="text-lg font-semibold">Room <span id="stateCode">—</span></div>
+          <div class="flex items-center gap-2">
+            <div id="phaseBadge" class="chip">lobby</div>
+            <div id="timerChip" class="hidden chip">⏳ 0s</div>
+            <button id="headerRevealBtn" class="hidden text-sm px-3 py-1 rounded-lg bg-fuchsia-600 text-white">Reveal</button>
+            <button id="leaveBtn" class="text-sm px-3 py-1 rounded-lg border">Leave</button>
+          </div>
+        </div>
+
+        <div class="mt-4 grid lg:grid-cols-[1fr_auto] gap-6 items-start">
+          <div>
+            <div class="text-sm text-slate-600 mb-1">Players:</div>
+            <ul id="players" class="space-y-1"></ul>
+            <div id="hostBadge" class="text-xs text-indigo-700 hidden mt-2">You are the host.</div>
+
+            <div class="bg-slate-50 rounded-xl p-4 mt-4">
+              <div class="text-sm text-slate-600">Host Controls</div>
+              <div id="hostControls" class="hidden mt-2 space-y-3">
+                <div class="flex gap-2 items-center">
+                  <select id="topicSelect" class="border rounded-lg px-3 py-2">
+                    <option value="classic">Classic</option><option value="disney">Disney</option>
+                    <option value="tech">Tech</option><option value="food">Food</option>
+                  </select>
+                  <button id="setTopicBtn" class="px-3 py-2 rounded-lg border">Set Topic</button>
+                  <div class="text-xs text-slate-500">Current: <span id="currentTopic">—</span></div>
+                </div>
+                <div class="flex gap-2 items-center">
+                  <label class="text-sm text-slate-600">Discuss (s)</label>
+                  <input id="timerInput" type="number" min="10" max="600" value="90" class="w-20 border rounded-lg px-2 py-1">
+                  <button id="setTimerBtn" class="px-3 py-2 rounded-lg border">Set</button>
+                  <label class="text-sm text-slate-600 ml-3">Vote (s)</label>
+                  <input id="voteTimerInput" type="number" min="5" max="180" value="25" class="w-20 border rounded-lg px-2 py-1">
+                  <button id="setVoteTimerBtn" class="px-3 py-2 rounded-lg border">Set</button>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <button id="dealBtn" class="btn-game btn-primary">Deal Roles</button>
+                  <button id="discussBtn" class="btn-game bg-blue-600 text-white">Start Discussion</button>
+                  <button id="startVoteBtn" class="btn-game bg-amber-600 text-white">Start Voting</button>
+                  <button id="revealBtn" class="btn-game bg-fuchsia-600 text-white">Reveal</button>
+                </div>
+                <div class="text-[11px] text-slate-500">Min players required: <b>3</b>. Auto-reveal when everyone votes or the vote timer expires.</div>
+              </div>
+            </div>
+          </div>
+
+          <aside class="bg-white rounded-xl border p-4 w-[260px]">
+            <div class="text-sm text-slate-600">Share this room</div>
+            <div class="text-[11px] text-slate-500">Scan or copy link</div>
+            <div id="qrLobby" class="inline-block bg-white p-2 rounded-xl shadow mt-2"></div>
+            <div class="text-[11px] text-slate-500 mt-2 break-all" id="shareLinkLobby">—</div>
+            <button id="copyLinkBtn" class="copy-btn mt-3 w-full">Copy Game Link</button>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROLES -->
+    <section id="viewRoles" class="hidden fade">
+      <div class="bg-white rounded-2xl shadow p-8 text-center">
+        <div class="text-slate-500">Your role</div>
+        <div id="roleText" class="text-3xl font-black mt-2"></div>
+        <div class="text-xs text-slate-500 mt-3">Keep this secret!</div>
+      </div>
+    </section>
+
+    <!-- COUNTDOWN -->
+    <section id="viewCountdown" class="hidden fade">
+      <div class="aurora rounded-2xl shadow p-10 text-center text-white relative overflow-hidden">
+        <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(600px 200px at 50% -120px, rgba(255,255,255,.35), transparent 60%);"></div>
+        <div class="text-lg opacity-90">Discussion Time</div>
+        <div id="bigTimer" class="text-7xl md:text-8xl font-black tracking-tight mt-2 drop-shadow">90</div>
+        <div class="opacity-90 mt-2">Talk it out. Imposter—blend in.</div>
+
+        <div id="turnUI" class="mt-8 bg-white/15 backdrop-blur rounded-xl p-4">
+          <div class="text-sm mb-2">Turn order</div>
+          <div id="turnChips" class="flex flex-wrap gap-2"></div>
+          <div id="turnInputWrap" class="mt-4 hidden">
+            <div class="text-sm mb-1">Your word (press Enter to send):</div>
+            <input id="turnInput" maxlength="40" class="w-full rounded-lg px-3 py-2 text-black" placeholder="One descriptive word">
+            <button id="turnSend" class="mt-2 btn-game btn-primary">Send</button>
+          </div>
+          <div id="turnWait" class="mt-4 hidden text-sm opacity-90">Waiting for <span id="turnName">someone</span>…</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VOTE -->
+    <section id="viewVote" class="hidden fade">
+      <div class="bg-white rounded-2xl shadow p-6">
+        <div class="flex items-center justify-between">
+          <div class="title text-xl">Cast your vote</div>
+          <div id="voteTimerChip" class="chip hidden">⏳ 0s</div>
+        </div>
+        <div id="voteTargets" class="flex flex-wrap gap-2 mt-4"></div>
+        <div class="text-xs text-slate-500 mt-2">Live tally: <span id="tallyText">{}</span></div>
+      </div>
+    </section>
+
+    <!-- REVEAL -->
+    <section id="viewReveal" class="hidden fade">
+      <div class="aurora rounded-2xl shadow p-8 text-center text-white relative overflow-hidden">
+        <div class="text-3xl font-black" id="resultText">—</div>
+        <div id="secretWordLine" class="opacity-90 mt-2 text-lg hidden"></div>
+      </div>
+    </section>
+  </main>
+
+  <button id="panicReveal" title="Reveal now (host)">
+    <div class="btn-inner">
+      <div class="visor"></div>
+      <div class="label"><span>REVEAL NOW</span><span class="small">🚨 EMERGENCY MEETING</span></div>
+    </div>
+  </button>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // ======= helpers & sound (unchanged from last step, trimmed for space) =======
+    const $ = id => document.getElementById(id);
+    const connEl=$('conn'), sidEl=$('sid'); const socket=io();
+    socket.on('connect',()=>{connEl.textContent='connected ✅';sidEl.textContent=socket.id;connEl.className='text-emerald-700';});
+    socket.on('disconnect',r=>{connEl.textContent=`offline (${r})`;connEl.className='text-rose-700';sidEl.textContent='—';});
+    function toast(msg){ const t=$('globalToast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',1600); }
+    function regenQR(el,url){ if(!el) return; el.innerHTML=''; new QRCode(el,{text:url,width:140,height:140}); }
+    function view(id){['viewHome','viewLobby','viewRoles','viewCountdown','viewVote','viewReveal'].forEach(v=>$(v).classList.add('hidden')); $(id).classList.remove('hidden');}
+    function makeCode(len=6){const c='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<len;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
+    function showWordFly(name,text){ const el=document.createElement('div'); el.className='word-fly'; el.innerHTML=`<small>${name}:</small> ${text}`; document.body.appendChild(el); setTimeout(()=>el.remove(),2300); }
+
+    // ======= share base (NEW) =======
+    let linkBase = localStorage.getItem('imposter.linkBase') || location.origin; // e.g., http://192.168.1.50:3000
+    const linkBaseBtn = $('linkBaseBtn');
+    function shareURL(code){ return `${linkBase}${location.pathname}#room=${code}`; }
+    function setLinkBase(newBase){
+      try{
+        const u=new URL(newBase); // validate
+        linkBase = u.origin;
+        localStorage.setItem('imposter.linkBase', linkBase);
+        linkBaseBtn.textContent = `Link Base`;
+        toast(`Link base set to ${linkBase}`);
+        // re-render QR/link if a room exists
+        if(activeCode){
+          const url = shareURL(activeCode);
+          $('shareLink').textContent = url;
+          $('shareLinkLobby').textContent = url;
+          regenQR($('qrHome'), url);
+          regenQR($('qrLobby'), url);
+        }
+      }catch{ toast('Invalid URL. Example: http://192.168.1.50:3000'); }
+    }
+    linkBaseBtn.title = 'Set the base URL used for links/QR (e.g., http://192.168.1.50:3000)';
+    linkBaseBtn.addEventListener('click',()=>{
+      const v = prompt('Enter base URL to share (e.g., http://192.168.1.50:3000):', linkBase);
+      if(v) setLinkBase(v.trim());
+    });
+
+    // ======= refs =======
+    const createBtn=$('createBtn'), hostNameEl=$('hostName'), homeShare=$('homeShare'), roomCodeEl=$('roomCode'), shareLinkEl=$('shareLink'), qrHome=$('qrHome'), homeCopyBtn=$('homeCopyBtn');
+    const joinBtn=$('joinBtn'), joinNameEl=$('joinName'), joinCodeEl=$('joinCode'), linkHint=$('linkHint'), detectedRoomEl=$('detectedRoom');
+    const stateCodeEl=$('stateCode'), playersEl=$('players'), hostBadge=$('hostBadge'), phaseBadge=$('phaseBadge'), timerChip=$('timerChip');
+    const headerRevealBtn=$('headerRevealBtn'), leaveBtn=$('leaveBtn');
+    const hostControls=$('hostControls'), topicSelect=$('topicSelect'), setTopicBtn=$('setTopicBtn'), currentTopic=$('currentTopic');
+    const timerInput=$('timerInput'), setTimerBtn=$('setTimerBtn'), voteTimerInput=$('voteTimerInput'), setVoteTimerBtn=$('setVoteTimerBtn');
+    const dealBtn=$('dealBtn'), discussBtn=$('discussBtn'), startVoteBtn=$('startVoteBtn'), revealBtn=$('revealBtn');
+    const qrLobby=$('qrLobby'), shareLinkLobby=$('shareLinkLobby'), copyLinkBtn=$('copyLinkBtn');
+    const roleText=$('roleText'), bigTimer=$('bigTimer'), voteTimerChip=$('voteTimerChip');
+    const voteTargets=$('voteTargets'), tallyText=$('tallyText');
+    const resultText=$('resultText'), secretWordLine=$('secretWordLine');
+    const panicRevealBtn=$('panicReveal');
+    const turnChips=$('turnChips'), turnInputWrap=$('turnInputWrap'), turnInput=$('turnInput'), turnSend=$('turnSend'), turnWait=$('turnWait'), turnName=$('turnName');
+    const muteBtn=$('muteBtn');
+
+    // simple sound toggle (kept from earlier build)
+    let muted = localStorage.getItem('imposter.muted') === '1';
+    function renderMute(){ if(muted){ muteBtn.classList.add('active'); muteBtn.textContent='🔇 Muted'; } else { muteBtn.classList.remove('active'); muteBtn.textContent='🔊 Sound'; } }
+    renderMute();
+    muteBtn.addEventListener('click',()=>{ muted=!muted; localStorage.setItem('imposter.muted', muted?'1':'0'); renderMute(); });
+
+    // ======= copy handlers (ALWAYS BOUND) =======
+    async function copyText(text){
+      if(!text) return;
+      try{ await navigator.clipboard.writeText(text); toast('Link copied to clipboard!'); }
+      catch{ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('Link copied to clipboard!'); }
+    }
+    homeCopyBtn.addEventListener('click',()=> copyText(shareLinkEl.textContent.trim()));
+    copyLinkBtn.addEventListener('click',()=> copyText(shareLinkLobby.textContent.trim()));
+
+    // ======= state =======
+    let activeCode=null, turnState={currentTurn:null,order:[]};
+
+    // create/join
+    createBtn.addEventListener('click',()=>{
+      const code=makeCode(); activeCode=code;
+      const url=shareURL(code);
+      roomCodeEl.textContent=code; shareLinkEl.textContent=url; homeShare.classList.remove('hidden');
+      regenQR(qrHome, url);
+      socket.emit('room:create',{code,name:hostNameEl.value||'Host'});
+      stateCodeEl.textContent=code;
+      view('viewLobby');
+      shareLinkLobby.textContent=url; regenQR(qrLobby, url);
+    });
+
+    const m=location.hash.match(/#room=([A-Z0-9]+)/i);
+    if(m){ detectedRoomEl.textContent=m[1].toUpperCase(); joinCodeEl.value=m[1].toUpperCase(); linkHint.classList.remove('hidden'); }
+    function doJoin(){ const code=(joinCodeEl.value||detectedRoomEl.textContent||'').toUpperCase().trim(); if(!code) return; activeCode=code; stateCodeEl.textContent=code; socket.emit('room:join',{code,name:joinNameEl.value||'Player'}); view('viewLobby'); }
+    joinBtn.addEventListener('click',doJoin); joinNameEl.addEventListener('keydown',e=>{ if(e.key==='Enter') doJoin(); }); joinCodeEl.addEventListener('keydown',e=>{ if(e.key==='Enter') doJoin(); });
+
+    // host controls
+    setTopicBtn.addEventListener('click',()=>{ if(activeCode) socket.emit('topic:set',{code:activeCode,topic:topicSelect.value}); });
+    setTimerBtn.addEventListener('click',()=>{ if(activeCode) socket.emit('timer:set',{code:activeCode,seconds:timerInput.value}); });
+    setVoteTimerBtn.addEventListener('click',()=>{ if(activeCode) socket.emit('voteTimer:set',{code:activeCode,seconds:voteTimerInput.value}); });
+    const sendReveal=()=>{ if(activeCode) socket.emit('round:reveal',{code:activeCode}); };
+    dealBtn.addEventListener('click',()=>{ if(activeCode) socket.emit('round:deal',{code:activeCode}); });
+    discussBtn.addEventListener('click',()=>{ if(activeCode) socket.emit('round:discuss',{code:activeCode}); view('viewCountdown'); });
+    startVoteBtn.addEventListener('click',()=>{ if(activeCode) socket.emit('round:start-vote',{code:activeCode}); });
+    $('headerRevealBtn').addEventListener('click',sendReveal); $('revealBtn').addEventListener('click',sendReveal); panicRevealBtn.addEventListener('click',sendReveal);
+    leaveBtn.addEventListener('click',()=>{ socket.emit('room:leave'); activeCode=null; view('viewHome'); panicRevealBtn.style.display='none'; qrLobby.innerHTML=''; shareLinkLobby.textContent='—'; });
+
+    // turn send
+    function renderTurnUI(){
+      turnChips.innerHTML='';
+      turnState.order.forEach(o=>{
+        const el=document.createElement('div'); el.className='px-3 py-1 rounded-full text-sm';
+        const isNow = o.id===turnState.currentTurn; el.textContent=(o.name||'Player')+(isNow?' •':'');
+        el.style.background=isNow?'#fde68a':'#e2e8f0'; el.style.fontWeight=isNow?'800':'600'; turnChips.appendChild(el);
+      });
+      if (turnState.currentTurn===socket.id){ turnInputWrap.classList.remove('hidden'); turnWait.classList.add('hidden'); turnInput.focus(); }
+      else { turnInputWrap.classList.add('hidden'); turnWait.classList.remove('hidden'); const who = turnState.order.find(p=>p.id===turnState.currentTurn)?.name || 'someone'; turnName.textContent=who; }
+    }
+    $('turnSend').addEventListener('click',()=>{ const w=turnInput.value.trim().slice(0,40); if(!w) return; socket.emit('turn:submit',{code:activeCode,word:w}); turnInput.value=''; });
+    turnInput.addEventListener('keydown',e=>{ if(e.key==='Enter') $('turnSend').click(); });
+
+    // socket updates
+    socket.on('room:update',(data)=>{
+      if(!activeCode || data.code!==activeCode) return;
+      playersEl.innerHTML=''; data.players.forEach(p=>{ const li=document.createElement('li'); li.className='px-3 py-1 rounded border text-sm'; const hostMark=(data.host===p.id)?' (host)':''; li.textContent=p.name+hostMark; playersEl.appendChild(li); });
+      const isHost=(data.host===socket.id);
+      if(isHost){ hostBadge.classList.remove('hidden'); hostControls.classList.remove('hidden'); $('headerRevealBtn').classList.remove('hidden'); panicRevealBtn.style.display='block'; const url=shareURL(activeCode); shareLinkLobby.textContent=url; regenQR(qrLobby,url); }
+      else { hostBadge.classList.add('hidden'); hostControls.classList.add('hidden'); $('headerRevealBtn').classList.add('hidden'); panicRevealBtn.style.display='none'; const url=shareURL(activeCode); shareLinkLobby.textContent=url; }
+      currentTopic.textContent=data.topic||'—'; phaseBadge.textContent=data.phase||'lobby'; timerInput.value=data.timerSec||90; voteTimerInput.value=data.voteTimerSec||25;
+      if(data.phase==='lobby'||data.phase==='roles') view('viewLobby'); if(data.phase==='discuss') view('viewCountdown'); if(data.phase==='vote') view('viewVote'); if(data.phase==='reveal') view('viewReveal');
+    });
+    socket.on('turn:state',({currentTurn,order})=>{ turnState.currentTurn=currentTurn; turnState.order=(order||[]); renderTurnUI(); });
+    socket.on('turn:word',({name,text})=>{ showWordFly(name,text); });
+    socket.on('timer:tick',({secs})=>{ $('bigTimer').textContent=secs; timerChip.classList.remove('hidden'); timerChip.textContent=`⏳ ${secs}s`; $('voteTimerChip').classList.remove('hidden'); $('voteTimerChip').textContent=`⏳ ${secs}s`; });
+    socket.on('timer:end',()=>{ timerChip.classList.add('hidden'); $('voteTimerChip').classList.add('hidden'); });
+    socket.on('role:assign',({topic,isImposter,word})=>{ currentTopic.textContent=topic||'—'; roleText.textContent=isImposter?'🎭 You are the IMPOSTER (X)':`🔐 Your word: ${word}`; roleText.className=isImposter?'text-3xl font-black text-rose-600':'text-3xl font-black text-emerald-700'; view('viewRoles'); });
+    socket.on('vote:update',({tally})=>{ try{ tallyText.textContent=JSON.stringify(tally);}catch{ tallyText.textContent='{}'; } });
+    socket.on('round:results',({executed,isHit,imposters,secret})=>{ if(executed){ resultText.textContent=isHit?'✅ The impostor was caught!':'❌ Wrong guess — the impostor survived!'; if(!isHit){ secretWordLine.classList.remove('hidden'); secretWordLine.textContent=`Secret word: ${secret}`;} else { secretWordLine.classList.add('hidden'); } } else { resultText.textContent='No majority. No one was executed.'; secretWordLine.classList.add('hidden'); } try{ confetti({particleCount:200,spread:70,origin:{y:0.6}});}catch{} view('viewReveal'); });
+    socket.on('round:error', e=>{ if(e?.reason==='not_enough_players'){ toast(`Need at least ${e.need} players to deal (you have ${e.have}).`);} else { toast('Action failed.'); } });
+  </script>
+</body>
+</html>
