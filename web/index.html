@@ -119,7 +119,6 @@
             <div class="text-[11px] text-slate-500">Scan or copy link</div>
             <div id="qrLobby" class="inline-block bg-white p-2 rounded-xl shadow mt-2"></div>
             <div class="text-[11px] text-slate-500 mt-2 break-all" id="shareLinkLobby">—</div>
-            <!-- COPY BUTTON (back) -->
             <button id="copyLinkBtn" class="btn-game bg-emerald-600 text-white mt-3 w-full">Copy Game Link</button>
           </aside>
         </div>
@@ -205,7 +204,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    // ---- helpers & sounds (minimal) ----
+    // ---- helpers ----
     const $=id=>document.getElementById(id);
     const socket=io();
     const RENDER_DEFAULT='https://imposter-game-b1s8.onrender.com';
@@ -221,11 +220,11 @@
     const joinName=$('joinName'), joinCode=$('joinCode'), joinBtn=$('joinBtn'), detectedRoom=$('detectedRoom'), linkHint=$('linkHint');
     const stateCode=$('stateCode'), players=$('players'), hostBadge=$('hostBadge'), phaseBadge=$('phaseBadge'), currentTopic=$('currentTopic');
     const topicSel=$('topicSelect'), setTopic=$('setTopicBtn'), timerIn=$('timerInput'), setTimer=$('setTimerBtn'), voteTimerIn=$('voteTimerInput'), setVoteTimer=$('setVoteTimerBtn');
-    const dealBtn=$('dealBtn'), discussBtn=$('discussBtn'), startVoteBtn=$('startVoteBtn'), revealBtn=$('revealBtn'), headerRevealBtn=$('headerRevealBtn');
-    const hostControls=$('hostControls'), qrLobby=$('qrLobby'), shareLinkLobby=$('shareLinkLobby'), copyLinkBtn=$('copyLinkBtn');
+    const dealBtn=$('dealBtn'), discussBtn=$('discussBtn'), startVoteBtn=$('startVoteBtn'), revealBtn=$('revealBtn'), headerRevealBtn=$('headerRevealBtn'), hostControls=$('hostControls');
+    const qrLobby=$('qrLobby'), shareLinkLobby=$('shareLinkLobby'), copyLinkBtn=$('copyLinkBtn');
     const bigTimer=$('bigTimer'), turnChips=$('turnChips'), turnInputWrap=$('turnInputWrap'), turnInput=$('turnInput'), turnSend=$('turnSend'), turnWait=$('turnWait'), turnName=$('turnName');
     const myWordChip=$('myWordChip'), myWordVal=$('myWordVal'), impChip=$('impChip'), jailbreakWrap=$('jailbreakWrap'), jailGuess=$('jailGuess'), jailBtn=$('jailBtn');
-    const resultText=$('resultText'), secretWordLine=$('secretWordLine'), jbLine=$('jbLine'), playAgainBtn=$('playAgainBtn'), exitBtn=$('exitBtn');
+    const voteList=$('voteList'), resultText=$('resultText'), secretWordLine=$('secretWordLine'), jbLine=$('jbLine'), playAgainBtn=$('playAgainBtn'), exitBtn=$('exitBtn');
     const muteBtn=$('muteBtn'), linkBaseBtn=$('linkBaseBtn'), panicReveal=$('panicReveal');
 
     let activeCode=null, lastState=null, amImposter=false;
@@ -234,7 +233,7 @@
     socket.on('connect',()=>{conn.textContent='connected ✅'; conn.className='text-emerald-700'; sid.textContent=socket.id;});
     socket.on('disconnect',r=>{conn.textContent=`offline (${r})`; conn.className='text-rose-700'; sid.textContent='—';});
 
-    // link base & copy buttons
+    // link base & copy
     linkBaseBtn.onclick=()=>{ const v=prompt('Base URL for share links:', linkBase); if(!v) return; try{ const u=new URL(v); linkBase=u.origin; localStorage.setItem('imposter.linkBase',linkBase); if(activeCode){ const url=shareURL(activeCode); shareLink.textContent=url; shareLinkLobby.textContent=url; regenQR(qrHome,url); regenQR(qrLobby,url);} }catch{ alert('Invalid URL'); } };
     homeCopy.onclick=()=>navigator.clipboard.writeText(shareLink.textContent.trim());
     copyLinkBtn.onclick=()=>navigator.clipboard.writeText(shareLinkLobby.textContent.trim());
@@ -253,15 +252,36 @@
     discussBtn.onclick=()=>{
       if(!lastState || lastState.players.length<3){ alert('Need at least 3 players.'); return; }
       // auto-deal if host forgot
-      if (!lastState || lastState.phase!=='roles'){ socket.emit('round:deal',{code:activeCode}); setTimeout(()=>socket.emit('round:discuss',{code:activeCode}),200); }
+      if (!lastState.secretWord && lastState.phase!=='roles'){ socket.emit('round:deal',{code:activeCode}); setTimeout(()=>socket.emit('round:discuss',{code:activeCode}),200); }
       else { socket.emit('round:discuss',{code:activeCode}); }
       view('viewCountdown');
-      socket.emit('role:remind',{code:activeCode}); // make sure we see our word/role
+      socket.emit('role:remind',{code:activeCode});
     };
     startVoteBtn.onclick=()=>socket.emit('round:start-vote',{code:activeCode});
     revealBtn.onclick=()=>socket.emit('round:reveal',{code:activeCode});
     headerRevealBtn.onclick=()=>socket.emit('round:reveal',{code:activeCode});
     panicReveal.onclick=()=>socket.emit('round:reveal',{code:activeCode});
+
+    // --- voting UI helpers (restored) ---
+    function renderVoteBars(playersArr){
+      voteList.innerHTML='';
+      (playersArr||[]).filter(p=>p.id!==socket.id).forEach(p=>{
+        const row=document.createElement('button'); row.className='vote-row w-full text-left'; row.onclick=()=> socket.emit('vote:cast',{code:activeCode,targetId:p.id});
+        const fill=document.createElement('div'); fill.className='vote-fill'; fill.id=`fill-${p.id}`;
+        const inner=document.createElement('div'); inner.className='relative p-4 flex items-center justify-between';
+        const name=document.createElement('div'); name.className='font-bold text-lg'; name.textContent=p.name;
+        const count=document.createElement('div'); count.id=`pct-${p.id}`; count.className='text-sm text-slate-600'; count.textContent='0';
+        inner.appendChild(name); inner.appendChild(count); row.appendChild(fill); row.appendChild(inner); voteList.appendChild(row);
+      });
+    }
+    function updateVoteBars(tally,total){
+      (lastState?.players||[]).filter(p=>p.id!==socket.id).forEach(p=>{
+        const count=(tally||{})[p.id]||0; const percent = total? Math.round((count/total)*100):0;
+        const fill=$(`fill-${p.id}`), pct=$(`pct-${p.id}`);
+        if(fill) fill.style.width=`${percent}%`;
+        if(pct) pct.textContent = `${count} vote${count!==1?'s':''}`;
+      });
+    }
 
     // state updates
     socket.on('room:update',(data)=>{
@@ -273,13 +293,14 @@
       if(isHost){ hostBadge.classList.remove('hidden'); hostControls.classList.remove('hidden'); headerRevealBtn.classList.remove('hidden'); panicReveal.style.display='block'; shareLinkLobby.textContent=url; regenQR(qrLobby,url); }
       else { hostBadge.classList.add('hidden'); hostControls.classList.add('hidden'); headerRevealBtn.classList.add('hidden'); panicReveal.style.display='none'; shareLinkLobby.textContent=url; }
       currentTopic.textContent=data.topic||'—';
+      phaseBadge.textContent=data.phase||'lobby';
 
       // show jailbreak only for impostor
       jailbreakWrap.style.display = (data.phase==='vote' && amImposter) ? 'block' : 'none';
 
       if(data.phase==='lobby'||data.phase==='roles') view('viewLobby');
       if(data.phase==='discuss'){ view('viewCountdown'); socket.emit('role:remind',{code:activeCode}); }
-      if(data.phase==='vote') view('viewVote');
+      if(data.phase==='vote'){ view('viewVote'); renderVoteBars(data.players); }   // <- build the list
       if(data.phase==='reveal') view('viewReveal');
     });
 
@@ -300,11 +321,30 @@
       turnName.textContent=who;
     });
 
+    // RESTORED: show the "name: word" animation on each turn
+    socket.on('turn:word',({name,text})=>{
+      const d=document.createElement('div');
+      d.style.position='fixed'; d.style.left='-20%'; d.style.top='50%';
+      d.style.transform='translateY(-50%)'; d.style.padding='.4em .7em';
+      d.style.fontWeight='900'; d.style.fontSize='clamp(28px,6vw,60px)';
+      d.style.borderRadius='.7em'; d.style.color='#fff';
+      d.style.background='linear-gradient(135deg,rgba(99,102,241,.95),rgba(236,72,153,.95))';
+      d.style.zIndex=9998; d.style.whiteSpace='nowrap';
+      d.textContent=`${name}: ${text}`;
+      document.body.appendChild(d);
+      d.animate([{transform:'translate(-20%,-50%) scale(.9)',opacity:0},{transform:'translate(120vw,-50%) scale(1)',opacity:1}],{duration:2000,easing:'ease-out'}).onfinish=()=>d.remove();
+    });
+
+    // RESTORED: live vote tally updates
+    socket.on('vote:update',({tally,total})=>{ updateVoteBars(tally,total); });
+
     // Always remind of role; update discussion chips too
     socket.on('role:assign',({isImposter,word})=>{
       amImposter=!!isImposter;
       if(amImposter){ impChip.classList.add('show'); myWordChip.classList.remove('show'); }
       else { myWordVal.textContent=word || ''; myWordChip.classList.add('show'); impChip.classList.remove('show'); }
+      // if we're impostor and in vote phase, ensure jailbreak area is visible
+      if(lastState?.phase==='vote'){ jailbreakWrap.style.display = amImposter ? 'block' : 'none'; }
     });
 
     socket.on('round:results',({executed,isHit,secret,jailbreak})=>{
